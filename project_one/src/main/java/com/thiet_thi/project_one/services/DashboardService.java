@@ -50,6 +50,7 @@ public class DashboardService {
                 .map(dv -> Map.<String, Object>of(
                         "donVi", dv.getTenDonVi(),
                         "soLuong", thietBiRepo.countByPhong_DonVi_MaDonVi(dv.getMaDonVi())
+
                 ))
                 .collect(Collectors.toList());
 
