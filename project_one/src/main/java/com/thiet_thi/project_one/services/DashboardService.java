@@ -49,7 +49,7 @@ public class DashboardService {
         List<Map<String, Object>> theoDonVi = donViRepo.findAll().stream()
                 .map(dv -> Map.<String, Object>of(
                         "donVi", dv.getTenDonVi(),
-                        "soLuong", thietBiRepo.countByMaDonVi(dv.getMaDonVi())
+                        "soLuong", thietBiRepo.countByPhong_DonVi_MaDonVi(dv.getMaDonVi())
                 ))
                 .collect(Collectors.toList());
 
