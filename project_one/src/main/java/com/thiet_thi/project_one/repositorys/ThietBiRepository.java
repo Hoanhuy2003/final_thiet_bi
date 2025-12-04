@@ -6,8 +6,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ThietBiRepository extends JpaRepository<ThietBi, String> {
+    long countByPhong_DonVi_MaDonVi(String maDonVi);
 
-    // ThietBiRepository.java – SỬA THÀNH CÁI NÀY LÀ XONG!
-    @Query("SELECT COUNT(tb) FROM ThietBi tb WHERE tb.phong.donVi.maDonVi = :maDonVi")
-    long countByDonVi(@Param("maDonVi") String maDonVi);
+
+    
 }
+
+
+

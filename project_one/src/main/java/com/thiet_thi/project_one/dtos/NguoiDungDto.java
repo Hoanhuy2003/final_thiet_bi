@@ -7,6 +7,9 @@ public class NguoiDungDto {
     @JsonProperty("ma_nd")
     private String maND;
 
+    @JsonProperty("mat_khau")
+    private String matKhau;
+
     @JsonProperty("ten_nd")
     private String tenND;
 
@@ -16,12 +19,12 @@ public class NguoiDungDto {
     @JsonProperty("ma_vai_tro")
     private String maVaiTro;
 
-    @JsonProperty("ten_vai_tro")
-    private String tenVaiTro;
+    @JsonProperty("trang_thai")
+    private String trangThai;
+
+    @JsonProperty("so_dien_thoai")
+    private String soDienThoai;
 
     @JsonProperty("ma_don_vi")
     private String maDonVi;
-
-    @JsonProperty("ten_don_vi")
-    private String tenDonVi;
 }

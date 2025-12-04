@@ -1,5 +1,6 @@
 package com.thiet_thi.project_one.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,8 +20,10 @@ public class DonVi {
     private String tenDonVi;
 
     @OneToMany(mappedBy = "donVi", cascade = CascadeType.ALL)
+    @JsonIgnore
     private Set<Phong> dsPhong = new HashSet<>();
 
     @OneToMany(mappedBy = "donVi")
+    @JsonIgnore
     private Set<NguoiDung> dsNguoiDung = new HashSet<>();
 }
