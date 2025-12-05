@@ -2,11 +2,13 @@ package com.thiet_thi.project_one.services;
 import com.thiet_thi.project_one.models.DonVi;
 import com.thiet_thi.project_one.repositorys.DonViRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 @RequiredArgsConstructor
 
 
-
+@Service
 public class DonViService {
     private final DonViRepository donViRepository;
 
