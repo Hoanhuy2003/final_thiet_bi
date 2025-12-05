@@ -1,5 +1,6 @@
 package com.thiet_thi.project_one.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,8 +21,12 @@ public class DonVi {
     private String tenDonVi;
 
     @OneToMany(mappedBy = "donVi", cascade = CascadeType.ALL)
-    private List<Phong> dsPhong;
+
+    @JsonIgnore
+    private Set<Phong> dsPhong = new HashSet<>();
 
     @OneToMany(mappedBy = "donVi")
-    private List<NguoiDung> dsNguoiDung;
+    @JsonIgnore
+    private Set<NguoiDung> dsNguoiDung = new HashSet<>();
+
 }

@@ -13,6 +13,7 @@ import lombok.*;
 public class NguoiDung {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ma_nd", length = 50, nullable = false)
     private String maND;
 
@@ -24,6 +25,12 @@ public class NguoiDung {
 
     @Column(name = "mat_khau", nullable = false, length = 255)
     private String matKhau;
+
+    @Column(name = "trang_thai")
+    private String trangThai;
+
+    @Column(name = "so_dien_thoai")
+    private String soDienThoai;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ma_vai_tro", referencedColumnName = "ma_vai_tro", nullable = false)
