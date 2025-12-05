@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -19,8 +20,8 @@ public class DonVi {
     private String tenDonVi;
 
     @OneToMany(mappedBy = "donVi", cascade = CascadeType.ALL)
-    private Set<Phong> dsPhong = new HashSet<>();
+    private List<Phong> dsPhong;
 
     @OneToMany(mappedBy = "donVi")
-    private Set<NguoiDung> dsNguoiDung = new HashSet<>();
+    private List<NguoiDung> dsNguoiDung;
 }

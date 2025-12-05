@@ -8,6 +8,7 @@ import com.thiet_thi.project_one.models.PhieuThanhLy;
 import com.thiet_thi.project_one.responses.PhieuThanhLyResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,4 +54,30 @@ public class PhieuThanhLyController {
 //        PhieuThanhLy phieu = phieuThanhLyService.duyetPhieu(ma, maNguoiDuyet);
 //        return ResponseEntity.ok(PhieuThanhLyResponse.from(phieu));
 //    }
+
+    // 2. Sửa phiếu (chỉ khi chưa duyệt)
+    @PutMapping("/{ma}")
+    public ResponseEntity<?> update(
+            @PathVariable String ma,
+            @Valid @RequestBody PhieuThanhLyDto dto) {
+        try {
+            PhieuThanhLy phieu = phieuThanhLyService.update(ma, dto);
+            return ResponseEntity.ok(PhieuThanhLyResponse.from(phieu));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Lỗi sửa phiếu: " + e.getMessage());
+        }
+    }
+
+    // 3. Xóa phiếu (chỉ khi chưa duyệt)
+    @DeleteMapping("/{maPhieu}")
+    public ResponseEntity<String> delete(@PathVariable String maPhieu) {
+        try {
+            phieuThanhLyService.delete(maPhieu);
+            return ResponseEntity.ok("Xóa phiếu thanh lý thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Lỗi: " + e.getMessage());
+        }
+    }
 }

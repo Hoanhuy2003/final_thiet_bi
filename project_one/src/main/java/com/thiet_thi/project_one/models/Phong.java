@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -22,6 +23,6 @@ public class Phong {
     @JoinColumn(name = "ma_don_vi", nullable = false)
     private DonVi donVi;
 
-    @OneToMany(mappedBy = "phong")
-    private Set<ThietBi> dsThietBi = new HashSet<>();
+    @OneToMany(mappedBy = "phong", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ThietBi> thietBis;
 }

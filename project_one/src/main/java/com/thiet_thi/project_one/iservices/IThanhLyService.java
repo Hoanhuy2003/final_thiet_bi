@@ -10,4 +10,6 @@ public interface IThanhLyService {
     PhieuThanhLy create(PhieuThanhLyDto dto);
     List<PhieuThanhLy> getAll();
     PhieuThanhLy getByID(String maTL) throws DataNotFoundException;
+    void delete(String maPhieu) throws DataNotFoundException;
+    PhieuThanhLy update(String maPhieu, PhieuThanhLyDto dto) throws DataNotFoundException;
 }
