@@ -10,6 +10,7 @@ import com.thiet_thi.project_one.responses.ThietBiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -24,35 +25,45 @@ public class ThietBiService implements IThietBiService {
 
     @Override
     public ThietBi createThietBi(ThietBiDto dto) {
+        // TỰ ĐỘNG SINH MÃ THIẾT BỊ
+        String maTB = generateMaTB(); // ← Hàm mình viết dưới đây
 
         LoaiThietBi loai = loaiThietBiRepository.findById(dto.getMaLoai())
                 .orElseThrow(() -> new DataNotFoundException("Không tìm thấy loại thiết bị"));
 
         LoThietBi lo = null;
-        if (dto.getMaLo() != null) {
+        if (dto.getMaLo() != null && !dto.getMaLo().isBlank()) {
             lo = loThietBiRepository.findById(dto.getMaLo())
                     .orElseThrow(() -> new DataNotFoundException("Không tìm thấy lô thiết bị"));
         }
 
         Phong phong = null;
-        if (dto.getMaPhong() != null) {
+        if (dto.getMaPhong() != null && !dto.getMaPhong().isBlank()) {
             phong = phongRepository.findById(dto.getMaPhong())
                     .orElseThrow(() -> new DataNotFoundException("Không tìm thấy phòng"));
         }
 
         ThietBi tb = ThietBi.builder()
-                .maTB(dto.getMaTB())
+                .maTB(maTB)  // ← DÙNG HÀM TỰ SINH
                 .tenTB(dto.getTenTB())
                 .loThietBi(lo)
                 .loaiThietBi(loai)
                 .phong(phong)
-                .tinhTrang(dto.getTinhTrang())
+                .tinhTrang(dto.getTinhTrang() != null ? dto.getTinhTrang() : "Đang sử dụng")
                 .giaTriBanDau(dto.getGiaTriBanDau())
-                .giaTriHienTai(dto.getGiaTriHienTai())
-                .ngaySuDung(dto.getNgaySuDung())
+                .giaTriHienTai(dto.getGiaTriHienTai() != null ? dto.getGiaTriHienTai() : dto.getGiaTriBanDau())
+                .ngaySuDung(dto.getNgaySuDung() != null ? dto.getNgaySuDung() : LocalDate.now())
                 .build();
 
         return thietBiRepository.save(tb);
+    }
+
+    // HÀM SINH MÃ TỰ ĐỘNG - SIÊU ĐẸP
+    private String generateMaTB() {
+//        int year = LocalDate.now().getYear();
+        long count = thietBiRepository.count();
+        return String.format("TB%03d", count + 1);
+        // Kết quả: TB-2025-0001, TB-2025-0002,...
     }
 
 
