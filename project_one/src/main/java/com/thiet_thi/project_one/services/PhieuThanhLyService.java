@@ -181,16 +181,74 @@ public class PhieuThanhLyService implements IThanhLyService {
         return phieuThanhLyRepository.save(phieu);
     }
 
-    // Bonus: Duyệt phiếu
+//    // Bonus: Duyệt phiếu
+//    @Transactional
+//    public PhieuThanhLy duyetPhieu(String maPhieu, String maNguoiDuyet) throws DataNotFoundException {
+//        PhieuThanhLy phieu = getByID(maPhieu);
+//        NguoiDung nguoiDuyet = nguoiDungRepository.findById(maNguoiDuyet)
+//                .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người duyệt"));
+//
+//        phieu.setTrangThai("Hoàn tất");
+//        phieu.setNguoiDuyet(nguoiDuyet);
+//        phieu.setNgayDuyet(java.time.LocalDate.now());
+//
+//        return phieuThanhLyRepository.save(phieu);
+//    }
+    @Override
     @Transactional
     public PhieuThanhLy duyetPhieu(String maPhieu, String maNguoiDuyet) throws DataNotFoundException {
         PhieuThanhLy phieu = getByID(maPhieu);
-        NguoiDung nguoiDuyet = nguoiDungRepository.findById(maNguoiDuyet)
-                .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người duyệt"));
 
+        // Kiểm tra trạng thái
+        if (!"Chờ duyệt".equals(phieu.getTrangThai())) {
+            throw new IllegalStateException("Chỉ được duyệt phiếu đang ở trạng thái 'Chờ duyệt'!");
+        }
+
+        NguoiDung nguoiDuyet = nguoiDungRepository.findById(maNguoiDuyet)
+                .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người duyệt: " + maNguoiDuyet));
+
+        // Cập nhật trạng thái phiếu
         phieu.setTrangThai("Hoàn tất");
         phieu.setNguoiDuyet(nguoiDuyet);
         phieu.setNgayDuyet(java.time.LocalDate.now());
+
+        // Cập nhật trạng thái tất cả thiết bị trong phiếu thành "Đã thanh lý"
+        for (ChiTietPhieuThanhLy ct : phieu.getChiTiet()) {
+            ThietBi tb = ct.getThietBi();
+            tb.setTinhTrang("Đã thanh lý");
+            thietBiRepository.save(tb);
+        }
+
+        return phieuThanhLyRepository.save(phieu);
+    }
+
+    @Override
+    @Transactional
+    public PhieuThanhLy tuChoiPhieu(String maPhieu, String maNguoiDuyet, String lyDoTuChoi) throws DataNotFoundException {
+        PhieuThanhLy phieu = getByID(maPhieu);
+
+        // Kiểm tra trạng thái
+        if (!"Chờ duyệt".equals(phieu.getTrangThai())) {
+            throw new IllegalStateException("Chỉ được từ chối phiếu đang ở trạng thái 'Chờ duyệt'!");
+        }
+
+        NguoiDung nguoiDuyet = nguoiDungRepository.findById(maNguoiDuyet)
+                .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người duyệt: " + maNguoiDuyet));
+
+        // Cập nhật trạng thái phiếu
+        phieu.setTrangThai("Từ chối");
+        phieu.setNguoiDuyet(nguoiDuyet);
+        phieu.setNgayDuyet(java.time.LocalDate.now());
+        phieu.setGhiChu((phieu.getGhiChu() != null ? phieu.getGhiChu() + "\n" : "")
+                + "Từ chối bởi " + nguoiDuyet.getTenND() + ": " + lyDoTuChoi);
+
+        // KHÔI PHỤC trạng thái thiết bị về "Đang sử dụng" (hoặc trạng thái cũ nếu bạn lưu)
+        for (ChiTietPhieuThanhLy ct : phieu.getChiTiet()) {
+            ThietBi tb = ct.getThietBi();
+            // Nếu bạn có lưu trạng thái cũ → dùng nó, còn không thì mặc định "Đang sử dụng"
+            tb.setTinhTrang("Đang sử dụng");
+            thietBiRepository.save(tb);
+        }
 
         return phieuThanhLyRepository.save(phieu);
     }

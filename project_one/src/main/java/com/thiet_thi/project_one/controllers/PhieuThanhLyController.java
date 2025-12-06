@@ -55,6 +55,31 @@ public class PhieuThanhLyController {
 //        return ResponseEntity.ok(PhieuThanhLyResponse.from(phieu));
 //    }
 
+    @PatchMapping("/{ma}/duyet")
+    public ResponseEntity<PhieuThanhLyResponse> duyetPhieu(
+            @PathVariable String ma,
+            @RequestParam String maNguoiDuyet) {
+        try {
+            PhieuThanhLy phieu = phieuThanhLyService.duyetPhieu(ma, maNguoiDuyet);
+            return ResponseEntity.ok(PhieuThanhLyResponse.from(phieu));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PatchMapping("/{ma}/tuchoi")
+    public ResponseEntity<PhieuThanhLyResponse> tuChoiPhieu(
+            @PathVariable String ma,
+            @RequestParam String maNguoiDuyet,
+            @RequestParam(required = false, defaultValue = "Không đủ điều kiện") String lyDoTuChoi) {
+        try {
+            PhieuThanhLy phieu = phieuThanhLyService.tuChoiPhieu(ma, maNguoiDuyet, lyDoTuChoi);
+            return ResponseEntity.ok(PhieuThanhLyResponse.from(phieu));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
     // 2. Sửa phiếu (chỉ khi chưa duyệt)
     @PutMapping("/{ma}")
     public ResponseEntity<?> update(
