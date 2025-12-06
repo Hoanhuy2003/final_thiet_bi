@@ -12,4 +12,9 @@ public interface IThanhLyService {
     PhieuThanhLy getByID(String maTL) throws DataNotFoundException;
     void delete(String maPhieu) throws DataNotFoundException;
     PhieuThanhLy update(String maPhieu, PhieuThanhLyDto dto) throws DataNotFoundException;
+    // MỚI: Duyệt phiếu thanh lý
+    PhieuThanhLy duyetPhieu(String maPhieu, String maNguoiDuyet) throws DataNotFoundException;
+
+    // MỚI: Từ chối phiếu thanh lý
+    PhieuThanhLy tuChoiPhieu(String maPhieu, String maNguoiDuyet, String lyDoTuChoi) throws DataNotFoundException;
 }
