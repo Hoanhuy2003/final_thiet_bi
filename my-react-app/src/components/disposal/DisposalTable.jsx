@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
-import thanhLyService from "../../services/thanhLyService";
+import thanhLyService from "../../services/disposalService";
 import toast from "react-hot-toast";
 
 const statusColors = {
@@ -51,10 +51,10 @@ export default function DisposalTable() {
   };
 
   // Mở modal chỉnh sửa
-  const openEdit = (phieu) => {
-    localStorage.setItem("selectedPhieuThanhLy", JSON.stringify(phieu));
-    window.dispatchEvent(new Event("openEditThanhLyModal"));
-  };
+  // const openEdit = (phieu) => {
+  //   localStorage.setItem("selectedPhieuThanhLy", JSON.stringify(phieu));
+  //   window.dispatchEvent(new Event("openEditThanhLyModal"));
+  // };
 
   // Xóa phiếu
   const handleDelete = async (maPhieu) => {
@@ -136,7 +136,7 @@ export default function DisposalTable() {
                           </button>
 
                           {/* Chỉnh sửa - chỉ khi Chờ duyệt */}
-                          {canEditOrDelete && (
+                          {/* {canEditOrDelete && (
                             <button
                               className="btn btn-sm btn-link text-primary p-1"
                               title="Chỉnh sửa"
@@ -144,10 +144,10 @@ export default function DisposalTable() {
                             >
                               <Edit size={16} />
                             </button>
-                          )}
+                          )} */}
 
                           {/* Xóa - chỉ khi Chờ duyệt */}
-                          {canEditOrDelete && (
+                          {/* {canEditOrDelete && (
                             <button
                               className="btn btn-sm btn-link text-danger p-1"
                               title="Xóa phiếu"
@@ -155,7 +155,7 @@ export default function DisposalTable() {
                             >
                               <Trash2 size={16} />
                             </button>
-                          )}
+                          )} */}
 
                           {/* Nếu đã duyệt thì chỉ xem */}
                           {!canEditOrDelete && (

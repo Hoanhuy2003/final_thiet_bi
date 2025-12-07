@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
+import { Edit, Building2 } from "lucide-react";
 import { equipmentService } from "../../services/equipmentService";
+import roomService from "../../services/roomService"; // LẤY PHÒNG TỪ BACKEND
 import toast from "react-hot-toast";
 
 export default function EquipmentEditModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [equipment, setEquipment] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingPhong, setLoadingPhong] = useState(true);
+  const [danhSachPhong, setDanhSachPhong] = useState([]);
 
-  // Form state (không có ngày sử dụng nữa)
   const [form, setForm] = useState({
     tenTB: "",
     maLoai: "",
@@ -16,10 +19,9 @@ export default function EquipmentEditModal() {
     tinhTrang: "Đang sử dụng",
     giaTriBanDau: "",
     giaTriHienTai: "",
-    // ngaySuDung: ""  ← ĐÃ BỎ
   });
 
-  // === HARDCODE OPTIONS GIỐNG HỆT PHẦN CREATE ===
+  // === HARDCODE LOẠI THIẾT BỊ (giữ nguyên) ===
   const loaiOptions = [
     { value: "", label: "Chọn loại thiết bị" },
     { value: "L001", label: "Máy tính để bàn" },
@@ -34,20 +36,24 @@ export default function EquipmentEditModal() {
     { value: "L010", label: "Tivi LCD 55 inch" },
   ];
 
-  const phongOptions = [
-    { value: "", label: "Chọn phòng" },
-    { value: "HCQT01", label: "Văn phòng HCQT" },
-    { value: "KTX01", label: "Phòng quản lý KTX" },
-    { value: "LIB01", label: "Thư viện tầng 1" },
-    { value: "P201", label: "Phòng thực hành Điện tử" },
-    { value: "P301", label: "Xưởng Cơ khí CNC" },
-    { value: "P001", label: "Phòng học 101" },
-    { value: "P002", label: "Lab Lập trình Java" },
-    { value: "P401", label: "Phòng học Kinh tế vĩ mô" },
-    { value: "TC01", label: "Phòng Kế toán" },
-    { value: "TH01", label: "Phòng thí nghiệm Vật lý" },
-  ];
+  // LẤY DANH SÁCH PHÒNG TỪ BACKEND
+  useEffect(() => {
+    const loadPhong = async () => {
+      try {
+        setLoadingPhong(true);
+        const data = await roomService.getAll();
+        setDanhSachPhong(data);
+      } catch (err) {
+        console.error("Lỗi tải danh sách phòng:", err);
+        toast.error("Không tải được danh sách phòng");
+      } finally {
+        setLoadingPhong(false);
+      }
+    };
+    loadPhong();
+  }, []);
 
+  // MỞ MODAL + ĐỔ DỮ LIỆU
   useEffect(() => {
     const handler = () => {
       const data = localStorage.getItem("selectedEquipment");
@@ -57,14 +63,12 @@ export default function EquipmentEditModal() {
 
         setForm({
           tenTB: eq.tenTB || "",
-          maLoai: eq.loai?.includes("L0") ? eq.loai.split(" ")[0] : eq.loai || "",
+          maLoai: eq.loai?.match(/L\d+/)?.[0] || "",
           maLo: null,
-          maPhong:
-            eq.phong?.match(/^[A-Z0-9]+/)?.[0] || eq.phong || "", // chỉ lấy mã phòng
+          maPhong: eq.phong || "", // Dùng tên phòng để so sánh với API
           tinhTrang: eq.tinhTrang || "Đang sử dụng",
           giaTriBanDau: eq.giaTriBanDau || "",
           giaTriHienTai: eq.giaTriHienTai || "",
-          // không set ngaySuDung nữa
         });
 
         setIsOpen(true);
@@ -76,18 +80,9 @@ export default function EquipmentEditModal() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!form.tenTB.trim()) {
-      toast.error("Vui lòng nhập tên thiết bị");
-      return;
-    }
-    if (!form.maLoai) {
-      toast.error("Vui lòng chọn loại thiết bị");
-      return;
-    }
+    if (!form.tenTB.trim()) return toast.error("Vui lòng nhập tên thiết bị");
+    if (!form.maLoai) return toast.error("Vui lòng chọn loại thiết bị");
 
-    setLoading(true);
-
-    // Payload đúng chuẩn snake_case – KHÔNG gửi ngày sử dụng
     const payload = {
       ten_tb: form.tenTB.trim(),
       ma_loai: form.maLoai || null,
@@ -96,11 +91,9 @@ export default function EquipmentEditModal() {
       tinh_trang: form.tinhTrang,
       gia_tri_ban_dau: form.giaTriBanDau ? Number(form.giaTriBanDau) : null,
       gia_tri_hien_tai: form.giaTriHienTai ? Number(form.giaTriHienTai) : null,
-      // ngay_su_dung: ... ← ĐÃ BỎ HOÀN TOÀN
     };
 
-    console.log("Payload cập nhật thiết bị:", payload);
-
+    setLoading(true);
     try {
       await equipmentService.update(equipment.maTB, payload);
       toast.success("Cập nhật thiết bị thành công!");
@@ -108,7 +101,7 @@ export default function EquipmentEditModal() {
       window.dispatchEvent(new Event("equipmentFilterChange"));
     } catch (err) {
       console.error("Lỗi cập nhật:", err);
-      toast.error("Cập nhật thất bại: " + (err.response?.data || "Lỗi server"));
+      toast.error("Cập nhật thất bại: " + (err.response?.data?.message || "Lỗi server"));
     } finally {
       setLoading(false);
     }
@@ -117,11 +110,12 @@ export default function EquipmentEditModal() {
   if (!isOpen || !equipment) return null;
 
   return (
-    <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <div className="modal-dialog modal-lg modal-dialog-scrollable">
+    <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+      <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div className="modal-content">
           <div className="modal-header bg-primary text-white">
-            <h5 className="modal-title fw-bold">
+            <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
+              <Edit size={20} />
               Chỉnh sửa thiết bị: {equipment.maTB} - {equipment.tenTB}
             </h5>
             <button
@@ -136,9 +130,7 @@ export default function EquipmentEditModal() {
             <div className="row g-3">
               {/* Tên thiết bị */}
               <div className="col-12 col-md-8">
-                <label className="form-label fw-semibold">
-                  Tên thiết bị
-                </label>
+                <label className="form-label fw-semibold">Tên thiết bị</label>
                 <input
                   type="text"
                   className="form-control"
@@ -150,9 +142,7 @@ export default function EquipmentEditModal() {
 
               {/* Loại thiết bị */}
               <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">
-                  Loại thiết bị
-                </label>
+                <label className="form-label fw-semibold">Loại thiết bị</label>
                 <select
                   className="form-select"
                   value={form.maLoai}
@@ -167,18 +157,23 @@ export default function EquipmentEditModal() {
                 </select>
               </div>
 
-              {/* Phòng */}
+              {/* Phòng – LẤY TỪ API */}
               <div className="col-12 col-md-6">
-                <label className="form-label fw-semibold">Phòng</label>
+                <label className="form-label fw-semibold d-flex align-items-center gap-2">
+                  <Building2 size={16} /> Phòng
+                </label>
                 <select
                   className="form-select"
                   value={form.maPhong}
                   onChange={(e) => setForm({ ...form, maPhong: e.target.value })}
-                  disabled={loading}
+                  disabled={loading || loadingPhong}
                 >
-                  {phongOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value} disabled={!opt.value}>
-                      {opt.label}
+                  <option value="">
+                    {loadingPhong ? "Đang tải phòng..." : "Chọn phòng"}
+                  </option>
+                  {danhSachPhong.map((phong) => (
+                    <option key={phong.maPhong} value={phong.tenPhong}>
+                      {phong.tenPhong} ({phong.maPhong})
                     </option>
                   ))}
                 </select>
@@ -197,6 +192,7 @@ export default function EquipmentEditModal() {
                   <option value="Bảo trì">Bảo trì</option>
                   <option value="Hỏng hóc">Hỏng hóc</option>
                   <option value="Chờ thanh lý">Chờ thanh lý</option>
+                  <option value="Đã thanh lý">Đã thanh lý</option>
                 </select>
               </div>
 
@@ -228,7 +224,7 @@ export default function EquipmentEditModal() {
             </div>
           </div>
 
-          <div className="modal-footer">
+          <div className="modal-footer border-top pt-3">
             <button
               className="btn btn-outline-secondary"
               onClick={() => setIsOpen(false)}
@@ -237,7 +233,7 @@ export default function EquipmentEditModal() {
               Hủy
             </button>
             <button
-              className="btn btn-primary px-4"
+              className="btn btn-success d-flex align-items-center gap-2"
               onClick={handleSubmit}
               disabled={loading}
             >

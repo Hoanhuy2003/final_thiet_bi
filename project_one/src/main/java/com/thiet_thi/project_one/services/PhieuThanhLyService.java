@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -27,20 +28,32 @@ public class PhieuThanhLyService implements IThanhLyService {
     @Override
     @Transactional
     public PhieuThanhLy create(PhieuThanhLyDto dto) throws DataNotFoundException {
+        System.out.println("=== BẮT ĐẦU TẠO PHIẾU THANH LÝ ===");
+        System.out.println("DTO nhận được từ frontend: " + dto);
 
         // 1. Tìm người lập
+        System.out.println("Tìm người lập phiếu với mã: " + dto.getMaNguoiTao());
         NguoiDung nguoiLap = nguoiDungRepository.findById(dto.getMaNguoiTao())
-                .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người lập phiếu"));
-        NguoiDung nguoiDuyet = nguoiDungRepository.findById(dto.getMaNguoiDuyet())
-                .orElseThrow(()-> new DataNotFoundException("Không tìm thấy người duyệt"));
+                .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người lập phiếu: " + dto.getMaNguoiTao()));
 
-        // 2. Tạo phiếu thanh lý
+        System.out.println("Tìm người duyệt phiếu với mã: " + dto.getMaNguoiDuyet());
+        NguoiDung nguoiDuyet = dto.getMaNguoiDuyet() != null ?
+                nguoiDungRepository.findById(dto.getMaNguoiDuyet())
+                        .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người duyệt: " + dto.getMaNguoiDuyet()))
+                : null;
+
+        // 2. TỰ ĐỘNG SINH MÃ PHIẾU THANH LÝ
+        String maPhieu = generateMaPhieuThanhLy();
+        System.out.println("Mã phiếu tự sinh: " + maPhieu);
+        String soPhieu = generateSoPhieu();
+        System.out.println("Số phiếu tự sinh: " + soPhieu);
+
+        // 3. Tạo phiếu
+        System.out.println("Tạo phiếu thanh lý với số phiếu: " + dto.getSoPhieu());
         PhieuThanhLy phieu = PhieuThanhLy.builder()
-                .maPhieuThanhLy(dto.getMaPhieuThanhLy())
-                .soPhieu(dto.getSoPhieu())
-                .ngayLap(dto.getNgayLap())
-                .ngayThanhLy(dto.getNgayThanhLy())
-                .ngayDuyet(dto.getNgayDuyet())
+                .maPhieuThanhLy(maPhieu)
+                .soPhieu(soPhieu)
+                .ngayLap(dto.getNgayLap() != null ? dto.getNgayLap() : LocalDate.now())
                 .hinhThuc(dto.getHinhThuc())
                 .lyDoThanhLy(dto.getLyDoThanhLy())
                 .ghiChu(dto.getGhiChu())
@@ -50,13 +63,22 @@ public class PhieuThanhLyService implements IThanhLyService {
                 .tongGiaTriThuVe(BigDecimal.ZERO)
                 .build();
 
-        // 3. Xử lý chi tiết thanh lý – ĐÃ DÙNG CLASS RIÊNG, KHÔNG LỖI NỮA!
+        System.out.println("Phiếu đã tạo (chưa có chi tiết): " + phieu);
+
+        // 4. Xử lý chi tiết thanh lý
+        System.out.println("Số lượng chi tiết thanh lý: " + dto.getChiTiet().size());
+        BigDecimal tongThuVe = BigDecimal.ZERO;
+
+        // Trong method create() của PhieuThanhLyService
         for (ChiTietThanhLyDto ctDto : dto.getChiTiet()) {
             ThietBi tb = thietBiRepository.findById(ctDto.getMaTB())
                     .orElseThrow(() -> new DataNotFoundException("Không tìm thấy thiết bị: " + ctDto.getMaTB()));
 
+            // TỰ SINH maCTTL – BẮT BUỘC!
+            String maCTTL = generateMaChiTiet(phieu.getMaPhieuThanhLy(), phieu.getChiTiet().size() + 1);
+
             ChiTietPhieuThanhLy chiTiet = ChiTietPhieuThanhLy.builder()
-                    .maCTTL(ctDto.getMaCTTL())
+                    .maCTTL(maCTTL) // ← THÊM DÒNG NÀY!
                     .phieuThanhLy(phieu)
                     .thietBi(tb)
                     .nguyenGia(tb.getGiaTriBanDau())
@@ -70,21 +92,40 @@ public class PhieuThanhLyService implements IThanhLyService {
                     .build();
 
             phieu.getChiTiet().add(chiTiet);
+            tongThuVe = tongThuVe.add(chiTiet.getGiaTriThuVe());
 
             // Cập nhật trạng thái thiết bị
+            System.out.println("Cập nhật trạng thái thiết bị " + tb.getMaTB() + " → Đã thanh lý");
             tb.setTinhTrang("Đã thanh lý");
             thietBiRepository.save(tb);
         }
 
-        // 4. Tính tổng giá trị thu về
-        BigDecimal tongThuVe = phieu.getChiTiet().stream()
-                .map(ChiTietPhieuThanhLy::getGiaTriThuVe)
-                .filter(g -> g != null)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
         phieu.setTongGiaTriThuVe(tongThuVe);
+        System.out.println("Tổng giá trị thu về: " + tongThuVe);
 
-        return phieuThanhLyRepository.save(phieu);
+        PhieuThanhLy saved = phieuThanhLyRepository.save(phieu);
+        System.out.println("TẠO PHIẾU THANH LÝ THÀNH CÔNG: " + saved.getMaPhieuThanhLy());
+        System.out.println("=== KẾT THÚC TẠO PHIẾU THANH LÝ ===\n");
+
+        return saved;
     }
+
+    private String generateMaPhieuThanhLy() {
+        int year = LocalDate.now().getYear();
+        long count = phieuThanhLyRepository.count();
+        return String.format("TL%d-%04d", year, count); // TL2025-0001
+    }
+
+    private String generateSoPhieu() {
+        int year = LocalDate.now().getYear();
+        long count = phieuThanhLyRepository.count();
+        return String.format("TL/%d/%04d", year, count); // TL/2025/003
+    }
+
+    private String generateMaChiTiet(String maPhieu, int stt) {
+        return maPhieu + "-CT" + String.format("%04d", stt); // TL2025-0003-CT001
+    }
+
     @Override
     public List<PhieuThanhLy> getAll() {
         return phieuThanhLyRepository.findAll();
@@ -181,7 +222,7 @@ public class PhieuThanhLyService implements IThanhLyService {
         return phieuThanhLyRepository.save(phieu);
     }
 
-//    // Bonus: Duyệt phiếu
+    //    // Bonus: Duyệt phiếu
 //    @Transactional
 //    public PhieuThanhLy duyetPhieu(String maPhieu, String maNguoiDuyet) throws DataNotFoundException {
 //        PhieuThanhLy phieu = getByID(maPhieu);

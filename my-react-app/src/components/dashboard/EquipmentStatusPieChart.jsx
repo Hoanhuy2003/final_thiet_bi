@@ -1,13 +1,42 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { useState, useEffect } from "react";
+import dashboardService from "../../services/dashboardService";
 
-const equipmentByStatus = [
-  { name: "Đang sử dụng", value: 385, color: "#10b981" },
-  { name: "Bảo trì", value: 42, color: "#f59e0b" },
-  { name: "Hỏng hóc", value: 18, color: "#ef4444" },
-  { name: "Chờ thanh lý", value: 23, color: "#6b7280" },
-];
+const COLORS = {
+  "Đang sử dụng": "#10b981",
+  "Bảo trì": "#f59e0b",
+  "Hỏng hóc": "#ef4444",
+  "Chờ thanh lý": "#6b7280",
+  "Đã thanh lý": "#374151",
+};
 
 export function EquipmentStatusPieChart() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await dashboardService.getDashboardData();
+        // Backend trả về: { soLuong, tyLe, trangThai }
+        const chartData = (res.trangThaiThietBi || []).map(item => ({
+          name: item.trangThai,
+          value: item.soLuong,
+          percent: item.tyLe
+        }));
+        setData(chartData);
+      } catch {
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  if (loading) return <div className="text-center py-5">Đang tải biểu đồ...</div>;
+  if (data.length === 0) return <div className="text-center py-5 text-muted">Chưa có dữ liệu</div>;
+
   return (
     <div className="card">
       <div className="card-header">
@@ -17,19 +46,19 @@ export function EquipmentStatusPieChart() {
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
-              data={equipmentByStatus}
+              data={data}
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              label={({ name, percent }) => `${name} ${percent}%`}
               outerRadius={100}
               dataKey="value"
             >
-              {equipmentByStatus.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[entry.name] || "#888"} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip formatter={(value) => `${value} thiết bị`} />
           </PieChart>
         </ResponsiveContainer>
       </div>

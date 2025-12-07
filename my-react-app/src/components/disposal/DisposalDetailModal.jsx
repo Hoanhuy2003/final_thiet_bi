@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Edit, Package, Calendar, DollarSign, User, CheckCircle, XCircle } from "lucide-react";
-import thanhLyService from "../../services/thanhLyService";
+import thanhLyService from "../../services/disposalService";
 import toast from "react-hot-toast";
 
 const statusColors = {
@@ -196,7 +196,7 @@ export default function DisposalDetailModal() {
                 )}
 
                 {/* Chỉnh sửa chỉ hiện khi chờ duyệt */}
-                {isPending && (
+                {/* {isPending && (
                   <button
                     className="btn btn-primary d-flex align-items-center gap-2"
                     onClick={openEdit}
@@ -205,7 +205,7 @@ export default function DisposalDetailModal() {
                     <Edit size={16} />
                     Chỉnh sửa
                   </button>
-                )}
+                )} */}
               </div>
             </>
           )}
