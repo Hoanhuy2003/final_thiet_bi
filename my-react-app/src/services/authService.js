@@ -1,90 +1,126 @@
-
 import axiosInstance from '../api/axiosInstance';
 const TOKEN_KEY = 'token';
 
-// ==================== Helper: Dispatch event khi auth thay đổi ====================
+// ==================== 1. HELPERS & EVENT ====================
 const dispatchAuthChange = () => {
-  window.dispatchEvent(new Event('authChange'));
+    window.dispatchEvent(new Event('authChange'));
 };
 
-// ==================== Các hàm tập trung ====================
 export const saveToken = (token) => {
-  localStorage.setItem(TOKEN_KEY, token);
-  dispatchAuthChange();
-};
-
-export const removeToken = () => {
-  localStorage.removeItem(TOKEN_KEY);
-  dispatchAuthChange();
+    localStorage.setItem(TOKEN_KEY, token);
+    dispatchAuthChange();
 };
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 
-// ==================== Kiểm tra đăng nhập + kiểm tra hết hạn ====================
+export const removeToken = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    dispatchAuthChange();
+};
+
+// Hàm giải mã JWT an toàn (Dùng chung cho cả getUserId và getUserRole)
+const decodeTokenPayload = (token) => {
+    try {
+        const payloadBase64 = token.split('.')[1];
+        
+        // Fix Base64URL: Chuyển đổi ký tự URL-safe sang Base64 chuẩn
+        let base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+        
+        // Thêm padding (Nếu cần)
+        while (base64.length % 4) {
+            base64 += '=';
+        }
+        
+        // Decode
+        const jsonPayload = atob(base64);
+        return JSON.parse(jsonPayload);
+        
+    } catch (error) {
+        console.error("Lỗi giải mã token:", error);
+        return null;
+    }
+}
+
+// ==================== 2. HÀM LẤY ID VÀ ROLE TỪ TOKEN ====================
+
+// HÀM MỚI: Lấy mã người dùng (ID)
+export const getUserId = () => {
+    const token = getToken();
+    if (!token) return null;
+    
+    const payload = decodeTokenPayload(token);
+    return payload ? payload.maND : null; 
+};
+
+
+// HÀM CŨ: Lấy role
+export const getUserRole = () => {
+    const token = getToken();
+    if (!token) return null;
+
+    const payload = decodeTokenPayload(token);
+    if (!payload) return null;
+    
+    const scope = payload.scope || "";
+    // Cắt bỏ prefix ROLE_
+    return scope.replace("ROLE_", "");
+};
+
+// ==================== 3. KIỂM TRA ĐĂNG NHẬP ====================
 export const isAuthenticated = () => {
-  const token = getToken();
-  if (!token) return false;
+    const token = getToken();
+    if (!token) return false;
 
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const exp = payload.exp * 1000;
+    const payload = decodeTokenPayload(token);
 
-    if (Date.now() >= exp) {
-      console.warn('Token đã hết hạn → tự động logout');
-      removeToken();
-      return false;
+    if (payload) {
+        const exp = payload.exp * 1000;
+        if (Date.now() >= exp) {
+            removeToken();
+            return false;
+        }
+        return true;
+    } else {
+        // Token lỗi định dạng
+        removeToken();
+        return false;
     }
-    return true;
-  } catch (err) {
-    console.warn('Token lỗi định dạng → xóa luôn');
-    removeToken();
-    return false;
-  }
 };
 
-// ==================== LOGIN ====================
+// ==================== 4. API (LOGIN / REGISTER / LOGOUT) ====================
+// ... (Các hàm này giữ nguyên logic gọi API) ...
 export const login = async (userName, password) => {
-  try {
-    const response = await axiosInstance.post('/auth/login', { userName, password });
-    const token = response.data.result?.token || response.data?.token;
+    try {
+        const response = await axiosInstance.post('/auth/login', { userName, password });
+        const token = response.data.result?.token || response.data?.token;
+        if (!token) throw new Error('Lỗi: Server không trả về token');
 
-    if (!token) throw new Error('Không nhận được token từ server');
-
-    saveToken(token);
-    return response.data;
-  } catch (err) {
-    console.error('Login failed:', err);
-    throw err;
-  }
-};
-
-// ==================== REGISTER (THÊM MỚI - SIÊU ĐẸP) ====================
-export const register = async (userData) => {
-  try {
-    const response = await axiosInstance.post('/auth/register', userData);
-
-    // Một số backend trả token luôn khi đăng ký → lưu luôn
-    const token = response.data.result?.token || response.data?.token;
-    if (token) {
-      saveToken(token);
+        saveToken(token);
+        return response.data;
+    } catch (err) {
+        throw err;
     }
-
-    return response.data;
-  } catch (err) {
-    console.error('Register failed:', err);
-    // Ném lỗi ra để component bắt và hiển thị
-    throw err.response?.data || err;
-  }
 };
 
-// ==================== LOGOUT ====================
+export const register = async (userData) => {
+    try {
+        const response = await axiosInstance.post('/auth/register', userData);
+        return response.data;
+    } catch (err) {
+        throw err.response?.data || err;
+    }
+};
+
 export const logout = async () => {
-  try {
-    await axiosInstance.post('/auth/logout');
-  } catch (err) {
-    console.warn('Gọi logout backend thất bại:', err);
-  } finally {
-    removeToken();
-    window.location.href = '/login';
-  }
+    try {
+        const token = getToken();
+        if (token) {
+            await axiosInstance.post('/auth/logout', { token });
+        }
+    } catch (err) {
+        console.warn(err);
+    } finally {
+        removeToken();
+        window.location.href = '/login';
+    }
 };
