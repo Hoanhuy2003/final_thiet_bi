@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Building2 } from "lucide-react";
-import roomService from "../../services/roomService"; // API phòng
-import toast from "react-hot-toast";
+
+import { Search, Filter } from "lucide-react";
+import axiosInstance from "../../api/axiosInstance";
 
 export default function EquipmentFilters() {
   const [filters, setFilters] = useState({
@@ -11,28 +11,31 @@ export default function EquipmentFilters() {
     phong: "all",
   });
 
-  const [danhSachPhong, setDanhSachPhong] = useState([]);
-  const [loadingPhong, setLoadingPhong] = useState(true);
+  // State lưu danh mục từ API
+  const [dsLoai, setDsLoai] = useState([]);
+  const [dsPhong, setDsPhong] = useState([]);
 
-  // Lấy danh sách phòng từ backend
+  // 1. Gọi API lấy danh mục (Chỉ chạy 1 lần khi load trang)
   useEffect(() => {
-    const loadPhong = async () => {
+    const fetchMasterData = async () => {
       try {
-        setLoadingPhong(true);
-        const data = await roomService.getAll();
-        setDanhSachPhong(data);
-      } catch (err) {
-        console.error("Lỗi tải danh sách phòng:", err);
-        toast.error("Không tải được danh sách phòng");
-        setDanhSachPhong([]);
-      } finally {
-        setLoadingPhong(false);
+        const [resLoai, resPhong] = await Promise.all([
+          axiosInstance.get("/api/loai_thiet_bi"),
+          axiosInstance.get("/api/phong")
+        ]);
+
+        // Xử lý dữ liệu trả về (fallback mảng rỗng nếu lỗi)
+        setDsLoai(resLoai.data.result || resLoai.data || []);
+        setDsPhong(resPhong.data.result || resPhong.data || []);
+        
+      } catch (error) {
+        console.error("Lỗi tải bộ lọc:", error);
       }
     };
-    loadPhong();
+    fetchMasterData();
   }, []);
 
-  // Lưu filter + thông báo thay đổi
+  // 2. Lưu filter vào LocalStorage khi thay đổi
   useEffect(() => {
     localStorage.setItem("equipmentFilters", JSON.stringify(filters));
     window.dispatchEvent(new Event("equipmentFilterChange"));
@@ -44,57 +47,54 @@ export default function EquipmentFilters() {
   };
 
   return (
-    <div className="card mb-4 shadow-sm">
-      <div className="card-header bg-light">
-        <h5 className="mb-0 d-flex align-items-center gap-2 text-primary">
-          <Filter size={20} />
-          Bộ lọc thiết bị
+
+    <div className="card mb-4 shadow-sm border-0">
+      <div className="card-header bg-white py-3">
+        <h5 className="mb-0 d-flex align-items-center gap-2 text-primary fw-bold">
+          <Filter size={20} /> Bộ lọc tìm kiếm
         </h5>
       </div>
       <div className="card-body">
         <div className="row g-3">
-          {/* Tìm kiếm */}
+          
+          {/* Tìm kiếm từ khóa */}
           <div className="col-12 col-md-6 col-lg-4">
             <div className="position-relative">
-              <Search className="position-absolute top-50 start-3 translate-middle-y text-muted" size={18} />
+              <Search className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" size={16} />
               <input
                 type="text"
                 className="form-control ps-5"
-                placeholder="Tìm mã hoặc tên thiết bị..."
+                placeholder="Nhập mã hoặc tên thiết bị..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               />
             </div>
           </div>
 
-          {/* Loại thiết bị */}
-          <div className="col-12 col-md-6 col-lg-3">
-            <select
-              className="form-select"
-              value={filters.loai}
+          {/* Lọc theo Loại (API) */}
+          <div className="col-12 col-md-6 col-lg-2">
+            <select 
+              className="form-select" 
+              value={filters.loai} 
               onChange={(e) => setFilters({ ...filters, loai: e.target.value })}
             >
-              <option value="all">Tất cả loại</option>
-              <option value="Máy tính để bàn">Máy tính để bàn</option>
-              <option value="Laptop">Laptop</option>
-              <option value="Máy chiếu Projector">Máy chiếu Projector</option>
-              <option value="Máy in Laser">Máy in Laser</option>
-              <option value="Máy lạnh">Máy lạnh</option>
-              <option value="Bàn ghế học viên">Bàn ghế học viên</option>
-              <option value="Tủ hồ sơ sắt">Tủ hồ sơ sắt</option>
-              <option value="Camera an ninh">Camera an ninh</option>
-              <option value="Tivi LCD 55 inch">Tivi LCD 55 inch</option>
+              <option value="all">-- Tất cả loại --</option>
+              {dsLoai.map((item) => (
+                <option key={item.maLoai} value={item.tenLoai}> {/* Value là Tên để khớp với Table */}
+                  {item.tenLoai}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* Trạng thái */}
+          {/* Lọc theo Trạng thái (Cứng) */}
           <div className="col-12 col-md-6 col-lg-2">
-            <select
-              className="form-select"
-              value={filters.tinhTrang}
+            <select 
+              className="form-select" 
+              value={filters.tinhTrang} 
               onChange={(e) => setFilters({ ...filters, tinhTrang: e.target.value })}
             >
-              <option value="all">Tất cả trạng thái</option>
+              <option value="all">-- Trạng thái --</option>
               <option value="Đang sử dụng">Đang sử dụng</option>
               <option value="Bảo trì">Bảo trì</option>
               <option value="Hỏng hóc">Hỏng hóc</option>
@@ -103,32 +103,26 @@ export default function EquipmentFilters() {
             </select>
           </div>
 
-          {/* Phòng – LẤY TỪ API */}
-          <div className="col-12 col-md-6 col-lg-3">
-            <div className="position-relative">
-              <Building2 className="position-absolute top-50 start-3 translate-middle-y text-muted" size={18} />
-              <select
-                className="form-select ps-5"
-                value={filters.phong}
-                onChange={(e) => setFilters({ ...filters, phong: e.target.value })}
-                disabled={loadingPhong}
-              >
-                <option value="all">
-                  {loadingPhong ? "Đang tải phòng..." : "Tất cả phòng"}
+          {/* Lọc theo Phòng (API) */}
+          <div className="col-12 col-md-6 col-lg-2">
+            <select 
+              className="form-select" 
+              value={filters.phong} 
+              onChange={(e) => setFilters({ ...filters, phong: e.target.value })}
+            >
+              <option value="all">-- Tất cả phòng --</option>
+              {dsPhong.map((p) => (
+                <option key={p.maPhong} value={p.tenPhong}> {/* Value là Tên để khớp với Table */}
+                  {p.tenPhong}
                 </option>
-                {danhSachPhong.map((phong) => (
-                  <option key={phong.maPhong} value={phong.tenPhong}>
-                    {phong.tenPhong} ({phong.maPhong})
-                  </option>
-                ))}
-              </select>
-            </div>
+              ))}
+            </select>
           </div>
 
-          {/* Nút xóa bộ lọc */}
-          <div className="col-12 col-lg-1 d-flex align-items-end">
-            <button className="btn btn-outline-danger w-100" onClick={reset}>
-              Xóa
+          {/* Nút Reset */}
+          <div className="col-12 col-md-6 col-lg-2 d-flex align-items-end">
+            <button className="btn btn-light border w-100 text-muted" onClick={reset}>
+              Xóa bộ lọc
             </button>
           </div>
         </div>

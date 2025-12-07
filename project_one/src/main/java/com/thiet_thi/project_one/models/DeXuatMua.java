@@ -37,6 +37,13 @@ public class DeXuatMua {
     @JoinColumn(name = "ma_nd", referencedColumnName = "ma_nd", nullable = false)
     private NguoiDung nguoiTao;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "nguoi_duyet_id")
+    private NguoiDung nguoiDuyet;
+
+    @Column(name = "ngay_duyet")
+    private LocalDate ngayDuyet;
+
     @OneToMany(mappedBy = "deXuatMua", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<ChiTietDeXuatMua> chiTietDeXuat = new HashSet<>();

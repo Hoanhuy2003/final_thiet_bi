@@ -102,6 +102,7 @@ public class AuthenticationService {
     private String generateToken(NguoiDung nguoiDung, long duration, String type) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+                .claim("maND", nguoiDung.getMaND())
                 .subject(nguoiDung.getEmail())
                 .issuer("ok")
                 .issueTime(new Date())
