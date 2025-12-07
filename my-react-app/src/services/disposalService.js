@@ -3,7 +3,7 @@ import axios from "../api/axiosInstance";
 
 const API = "/api/thanh_ly";
 
-const thanhLyService = {
+const disposalService = {
   // Lấy danh sách tất cả phiếu thanh lý
   getAll: async () => {
     const response = await axios.get(API);
@@ -48,4 +48,4 @@ const thanhLyService = {
   },
 };
 
-export default thanhLyService;
+export default disposalService;

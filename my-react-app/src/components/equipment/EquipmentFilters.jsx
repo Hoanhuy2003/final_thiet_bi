@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import { Search, Filter } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
 
@@ -42,9 +43,11 @@ export default function EquipmentFilters() {
 
   const reset = () => {
     setFilters({ search: "", loai: "all", tinhTrang: "all", phong: "all" });
+    toast.success("Đã xóa bộ lọc");
   };
 
   return (
+
     <div className="card mb-4 shadow-sm border-0">
       <div className="card-header bg-white py-3">
         <h5 className="mb-0 d-flex align-items-center gap-2 text-primary fw-bold">

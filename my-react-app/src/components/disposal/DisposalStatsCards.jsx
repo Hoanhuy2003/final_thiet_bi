@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock, CheckCircle, XCircle, Trash2, RefreshCw } from "lucide-react";
-import thanhLyService from "../../services/thanhLyService";
+import thanhLyService from "../../services/disposalService";
 import toast from "react-hot-toast";
 
 export default function DisposalStatsCards() {

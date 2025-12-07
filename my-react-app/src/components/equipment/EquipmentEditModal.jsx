@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { Edit, Building2 } from "lucide-react";
 import { equipmentService } from "../../services/equipmentService";
+
 import axiosInstance from "../../api/axiosInstance";
 import toast from "react-hot-toast";
 
@@ -7,12 +9,9 @@ export default function EquipmentEditModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [equipmentId, setEquipmentId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingPhong, setLoadingPhong] = useState(true);
+  const [danhSachPhong, setDanhSachPhong] = useState([]);
 
-  // State chứa danh mục từ API
-  const [dsLoai, setDsLoai] = useState([]);
-  const [dsPhong, setDsPhong] = useState([]);
-
-  // State Form
   const [form, setForm] = useState({
     tenTB: "",
     maLoai: "",
@@ -22,6 +21,7 @@ export default function EquipmentEditModal() {
     giaTriBanDau: "",
     giaTriHienTai: "",
   });
+
 
   // ==================== 1. LOAD DANH MỤC (CHẠY 1 LẦN) ====================
   useEffect(() => {
@@ -55,6 +55,7 @@ export default function EquipmentEditModal() {
     window.addEventListener("openEditEquipmentModal", handler);
     return () => window.removeEventListener("openEditEquipmentModal", handler);
   }, []);
+
 
   // ==================== 3. FETCH DỮ LIỆU & FILL FORM (QUAN TRỌNG) ====================
   useEffect(() => {
@@ -136,6 +137,7 @@ export default function EquipmentEditModal() {
       ma_lo: form.maLo || null,
       ma_phong: form.maPhong,
       tinh_trang: form.tinhTrang,
+
       gia_tri_ban_dau: Number(form.giaTriBanDau),
       gia_tri_hien_tai: Number(form.giaTriHienTai),
     };
@@ -146,6 +148,7 @@ export default function EquipmentEditModal() {
       setIsOpen(false);
       window.dispatchEvent(new Event("equipmentFilterChange")); // Reload bảng
     } catch (err) {
+
       console.error("Lỗi update:", err);
       toast.error("Lỗi: " + (err.response?.data?.message || err.message));
     } finally {
