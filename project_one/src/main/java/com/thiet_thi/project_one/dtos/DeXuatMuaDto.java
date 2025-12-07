@@ -34,6 +34,7 @@ public class DeXuatMuaDto {
     @JsonProperty("ten_nguoi_tao")
     private String tenNguoiTao;
 
+
     @JsonProperty("chi_tiet")
     private List<ChiTietDeXuatMuaDto> chiTiet = new ArrayList<>();
 }
