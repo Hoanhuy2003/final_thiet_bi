@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import disposalService from "../../services/disposalService";
-import { equipmentService } from "../../services/equipmentService"; // Dùng để lấy danh sách TB
+import { equipmentService } from "../../services/equipmentService";
 import toast from "react-hot-toast";
 
 export default function PhieuThanhLyCreateModal() {
@@ -15,7 +15,7 @@ export default function PhieuThanhLyCreateModal() {
     hinhThuc: "Bán thanh lý",
     lyDoThanhLy: "",
     ghiChu: "",
-    chiTiet: [], // [{ maTB, giaTriThuVe, lyDo }]
+    chiTiet: [],
   });
 
   // Lấy danh sách thiết bị
@@ -23,9 +23,8 @@ export default function PhieuThanhLyCreateModal() {
     const loadThietBi = async () => {
       try {
         const data = await equipmentService.getAll();
-        // Chỉ lấy thiết bị đang sử dụng hoặc chưa thanh lý
         const filtered = data.filter(tb => 
-          tb.tinhTrang === "Đang sử dụng" || tb.tinhTrang === "Hỏng hóc" || tb.tinhTrang === "Bảo trì"
+          ["Đang sử dụng", "Hỏng hóc", "Bảo trì"].includes(tb.tinhTrang)
         );
         setDanhSachTB(filtered);
       } catch (err) {
@@ -37,43 +36,56 @@ export default function PhieuThanhLyCreateModal() {
     loadThietBi();
   }, []);
 
-  // Mở modal
+  // MỞ MODAL + TỰ ĐỘNG THÊM THIẾT BỊ TỪ BẢNG THIẾT BỊ
   useEffect(() => {
     const handler = () => {
       setIsOpen(true);
-      generateSoPhieu(); // Sinh mã phiếu tự động
+      setForm(prev => ({
+        ...prev,
+        soPhieu: "", // để backend sinh
+        hinhThuc: "Bán thanh lý",
+        lyDoThanhLy: "",
+        ghiChu: "",
+        chiTiet: []
+      }));
+
+      // Kiểm tra có thiết bị được chọn từ bảng thiết bị không
+      const selectedTBStr = localStorage.getItem("selectedThietBiForThanhLy");
+      if (selectedTBStr) {
+        const selectedTB = JSON.parse(selectedTBStr);
+        themThietBi(selectedTB.maTB);
+        localStorage.removeItem("selectedThietBiForThanhLy");
+      }
     };
+
     window.addEventListener("openCreateThanhLyModal", handler);
     return () => window.removeEventListener("openCreateThanhLyModal", handler);
-  }, []);
+  }, [danhSachTB]); // thêm dependency để themThietBi dùng được danhSachTB
 
-  // Sinh mã phiếu tự động: TL2025-001
-  // const generateSoPhieu = async () => {
-  //   const year = new Date().getFullYear();
-  //   try {
-  //     const all = await disposalService.getAll();
-  //     const count = all.filter(p => p.soPhieu?.includes(year)).length + 1;
-  //     setForm(prev => ({ ...prev, soPhieu: `TL/${year}/${String(count).padStart(3, "0")}` }));
-  //   } catch {
-  //     setForm(prev => ({ ...prev, soPhieu: `TL/${year}/001` }));
-  //   }
-  // };
-
-  // Thêm thiết bị vào danh sách
+  // Thêm thiết bị
   const themThietBi = (maTB) => {
     const tb = danhSachTB.find(t => t.maTB === maTB);
-    if (!tb) return;
+    if (!tb) {
+      toast.error("Thiết bị không tồn tại hoặc đã thanh lý");
+      return;
+    }
     if (form.chiTiet.some(ct => ct.maTB === maTB)) {
       toast.error("Thiết bị đã được chọn!");
       return;
     }
     setForm(prev => ({
       ...prev,
-      chiTiet: [...prev.chiTiet, { maTB: tb.maTB, tenTB: tb.tenTB, giaTriThuVe: 0, lyDo: "" }]
+      chiTiet: [...prev.chiTiet, { 
+        maTB: tb.maTB, 
+        tenTB: tb.tenTB, 
+        giaTriThuVe: 0, 
+        lyDo: "" 
+      }]
     }));
+    toast.success(`Đã thêm ${tb.maTB} - ${tb.tenTB}`);
   };
 
-  // Xóa thiết bị khỏi danh sách
+  // Xóa thiết bị
   const xoaThietBi = (maTB) => {
     setForm(prev => ({
       ...prev,
@@ -81,24 +93,28 @@ export default function PhieuThanhLyCreateModal() {
     }));
   };
 
-  // Cập nhật giá trị thu về hoặc lý do
+  // Cập nhật chi tiết
   const capNhatChiTiet = (maTB, field, value) => {
     setForm(prev => ({
       ...prev,
       chiTiet: prev.chiTiet.map(ct =>
-        ct.maTB === maTB ? { ...ct, [field]: field === "giaTriThuVe" ? Number(value) || 0 : value } : ct
+        ct.maTB === maTB 
+          ? { ...ct, [field]: field === "giaTriThuVe" ? Number(value) || 0 : value } 
+          : ct
       )
     }));
   };
 
-  // Tính tổng thu về
+  // Tính tổng
   const tongThuVe = form.chiTiet.reduce((sum, ct) => sum + (ct.giaTriThuVe || 0), 0);
 
+  // Format ngày
   const formatDate = (date) => {
     const d = new Date(date);
     return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
   };
 
+  // SUBMIT
   const handleSubmit = async () => {
     if (form.chiTiet.length === 0) return toast.error("Vui lòng chọn ít nhất 1 thiết bị!");
     if (!form.lyDoThanhLy.trim()) return toast.error("Vui lòng nhập lý do thanh lý!");
@@ -115,7 +131,7 @@ export default function PhieuThanhLyCreateModal() {
         ma_tb: ct.maTB,
         gia_tri_thu_ve: ct.giaTriThuVe,
         ly_do_thanh_ly: ct.lyDo || null,
-        hinh_thuc_thanh_ly: form.hinhThuc  // THÊM DÒNG NÀY – BẮT BUỘC!
+        hinh_thuc_thanh_ly: form.hinhThuc
       }))
     };
 
@@ -255,7 +271,7 @@ export default function PhieuThanhLyCreateModal() {
             <button className="btn btn-outline-secondary" onClick={() => setIsOpen(false)} disabled={loading}>
               Hủy
             </button>
-            <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleSubmit} disabled={loading}>
+            <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleSubmit} disabled={loading || form.chiTiet.length === 0}>
               <Calculator size={18} />
               {loading ? "Đang tạo..." : "Tạo phiếu thanh lý"}
             </button>

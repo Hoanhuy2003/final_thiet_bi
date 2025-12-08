@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, Edit, Trash2, DollarSign } from "lucide-react";
 import { equipmentService } from "../../services/equipmentService";
 import toast from "react-hot-toast";
 
 const statusColors = {
-  "Đang sử dụng": "bg-success text-white", // Sửa class bootstrap chuẩn
+  "Đang sử dụng": "bg-success text-white",
   "Bảo trì": "bg-warning text-dark",
   "Hỏng hóc": "bg-danger text-white",
   "Chờ thanh lý": "bg-secondary text-white",
@@ -14,17 +14,11 @@ export default function EquipmentTable() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load data từ API
   const loadData = async () => {
     try {
       setLoading(true);
       const res = await equipmentService.getAll();
-      
-      // Kiểm tra cấu trúc trả về: res.data hoặc res.data.result
-      // (Tùy backend của bạn, nếu trả về ApiResponse thì lấy .result)
-      const data = res.data?.result || res.data || res || []; 
-      
-      // Đảm bảo data là mảng
+      const data = res.data?.result || res.data || res || [];
       setList(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Lỗi load bảng:", err);
@@ -36,108 +30,89 @@ export default function EquipmentTable() {
 
   useEffect(() => {
     loadData();
-    const handler = () => loadData();
-    window.addEventListener("equipmentFilterChange", handler);
-    return () => window.removeEventListener("equipmentFilterChange", handler);
   }, []);
 
-  // Lọc dữ liệu (Client-side filtering)
-  const filtered = list.filter(item => {
-    const f = JSON.parse(localStorage.getItem("equipmentFilters") || "{}");
-    const searchText = f.search?.toLowerCase() || "";
-    
-    // Lấy giá trị an toàn từ nested object để so sánh
-    const tenLoai = item.loaiThietBi?.tenLoai || item.loai || "";
-    const tenPhong = item.phong?.tenPhong || item.phong || "";
-
-    const matchSearch = !searchText || 
-      item.maTB?.toLowerCase().includes(searchText) || 
-      item.tenTB?.toLowerCase().includes(searchText);
-      
-    const matchLoai = !f.loai || f.loai === "all" || tenLoai === f.loai;
-    const matchStatus = !f.tinhTrang || f.tinhTrang === "all" || item.tinhTrang === f.tinhTrang;
-    const matchPhong = !f.phong || f.phong === "all" || tenPhong === f.phong;
-
-    return matchSearch && matchLoai && matchStatus && matchPhong;
-  });
-
+  // Xem chi tiết
   const openDetail = (eq) => {
     localStorage.setItem("selectedEquipment", JSON.stringify(eq));
     window.dispatchEvent(new Event("openDetailEquipmentModal"));
   };
 
+  // Chỉnh sửa
   const openEdit = (eq) => {
     localStorage.setItem("selectedEquipment", JSON.stringify(eq));
     window.dispatchEvent(new Event("openEditEquipmentModal"));
   };
 
-  const openDisposal = (eq) => {
-    localStorage.setItem("selectedEquipment", JSON.stringify(eq));
-    window.dispatchEvent(new Event("openDisposalModal"));
+  // Xóa thiết bị
+  const handleDelete = async (maTB) => {
+    if (!window.confirm(`Xác nhận xóa thiết bị ${maTB}?`)) return;
+
+    try {
+      await equipmentService.delete(maTB);
+      toast.success("Xóa thành công!");
+      loadData(); // Reload bảng
+    } catch (err) {
+      toast.error("Xóa thất bại: " + (err.response?.data?.message || err.message));
+    }
   };
 
-  if (loading) return (
-    <div className="text-center py-5">
-      <div className="spinner-border text-primary" role="status"></div>
-      <p className="mt-2 text-muted">Đang tải dữ liệu...</p>
-    </div>
-  );
+  // Thanh lý thiết bị (mở modal tạo phiếu và pre-add TB)
+  const openDisposal = (eq) => {
+    // 1. Lưu thiết bị vào localStorage
+    localStorage.setItem("selectedThietBiForThanhLy", JSON.stringify(eq));
+    
+    // 2. CHUYỂN HƯỚNG SANG TRANG THANH LÝ
+    window.location.href = "/disposal"; // Hoặc dùng router.navigate nếu dùng React Router
+    
+    // 3. MỞ MODAL TẠO PHIẾU (sẽ được trigger bởi useEffect trong modal)
+    // Modal sẽ tự mở khi trang load xong
+  };
+
+  if (loading) return <div className="text-center py-5">Đang tải dữ liệu...</div>;
 
   return (
-    <div className="card shadow-sm border-0">
+    <div className="card">
+      <div className="card-header">
+        <h5 className="mb-0">Danh sách thiết bị</h5>
+      </div>
       <div className="card-body p-0">
         <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
-            <thead className="bg-light text-secondary">
+          <table className="table table-hover mb-0">
+            <thead className="table-light">
               <tr>
-                <th className="ps-3">Mã TB</th>
+                <th>Mã TB</th>
                 <th>Tên thiết bị</th>
                 <th>Loại</th>
                 <th>Phòng</th>
-                <th>Nguyên giá</th>
-                <th>Giá trị HT</th>
+                <th>Giá trị ban đầu</th>
+                <th>Giá trị hiện tại</th>
                 <th>Trạng thái</th>
-                <th className="text-end pe-3">Hành động</th>
+                <th className="text-end">Hành động</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {list.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-4 text-muted">
-                    Không tìm thấy thiết bị nào.
+                  <td colSpan="8" className="text-center py-5 text-muted">
+                    Chưa có thiết bị nào
                   </td>
                 </tr>
               ) : (
-                filtered.map((eq) => (
+                list.map((eq) => (
                   <tr key={eq.maTB}>
-                    <td className="ps-3 fw-bold text-primary" style={{fontSize: '0.9rem'}}>
-                      {eq.maTB}
-                    </td>
-                    <td className="fw-semibold">
-                      {eq.tenTB}
-                    </td>
+                    <td className="fw-semibold text-primary">{eq.maTB}</td>
+                    <td>{eq.tenTB}</td>
+                    <td>{eq.loai}</td>
+                    <td>{eq.phong}</td>
+                    <td className="text-end">{eq.giaTriBanDau?.toLocaleString("vi-VN") || 0} đ</td>
+                    <td className="text-end">{eq.giaTriHienTai?.toLocaleString("vi-VN") || 0} đ</td>
                     <td>
-                      {/* Hiển thị Loại (Ưu tiên object con) */}
-                      {eq.loaiThietBi?.tenLoai || eq.loai || "-"}
-                    </td>
-                    <td>
-                      {/* Hiển thị Phòng (Ưu tiên object con) */}
-                      <span className="badge bg-light text-dark border">
-                        {eq.phong?.tenPhong || eq.phong || "Kho"}
-                      </span>
-                    </td>
-                    <td className="text-success small">
-                      {eq.giaTriBanDau?.toLocaleString("vi-VN")}đ
-                    </td>
-                    <td className="text-primary small">
-                      {eq.giaTriHienTai?.toLocaleString("vi-VN")}đ
-                    </td>
-                    <td>
-                      <span className={`badge rounded-pill fw-normal ${statusColors[eq.tinhTrang] || "bg-secondary text-white"}`}>
+                      <span className={`badge ${statusColors[eq.tinhTrang] || "bg-secondary"}`}>
                         {eq.tinhTrang}
                       </span>
                     </td>
-                    <td className="text-end pe-3">
+                    <td className="text-end">
                       <div className="d-flex justify-content-end gap-1">
                         <button 
                           className="btn btn-sm btn-light text-primary" 
@@ -154,9 +129,16 @@ export default function EquipmentTable() {
                           <Edit size={16} />
                         </button>
                         <button 
-                          className="btn btn-sm btn-light text-danger" 
-                          title="Thanh lý / Xóa"
+                          className="btn btn-sm btn-light text-warning" 
+                          title="Thanh lý"
                           onClick={() => openDisposal(eq)}
+                        >
+                          <DollarSign size={16} />
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-light text-danger" 
+                          title="Xóa"
+                          onClick={() => handleDelete(eq.maTB)}
                         >
                           <Trash2 size={16} />
                         </button>

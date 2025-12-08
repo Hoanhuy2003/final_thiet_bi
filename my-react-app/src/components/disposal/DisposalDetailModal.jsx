@@ -41,6 +41,21 @@ export default function DisposalDetailModal() {
     return () => window.removeEventListener("openDetailThanhLyModal", handler);
   }, []);
 
+  // THÊM HÀM NÀY – BẮT BUỘC!
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "Chưa xác định";
+    try {
+      // Nếu backend trả về dạng "2025-12-07" hoặc "07/12/2025"
+      if (typeof dateStr === "string") {
+        if (dateStr.includes("/")) return dateStr; // Đã đúng định dạng
+        return new Date(dateStr).toLocaleDateString("vi-VN"); // Chuyển ISO → dd/MM/yyyy
+      }
+      return dateStr.toLocaleDateString("vi-VN");
+    } catch (e) {
+      return dateStr || "Không hợp lệ";
+    }
+  };
+
   const formatCurrency = (v) => v ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "0 đ";
 
   const handleDuyet = async () => {
@@ -144,6 +159,9 @@ export default function DisposalDetailModal() {
                             <th>Còn lại</th>
                             <th>Thu về</th>
                             <th>Hình thức</th>
+                            <th>Trạng thái</th>
+                            <th>Người duyệt</th>
+                            <th>Ngày thanh lý</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -157,6 +175,17 @@ export default function DisposalDetailModal() {
                               <td>{formatCurrency(ct.giaTriConLai)}</td>
                               <td className="text-success fw-bold">{formatCurrency(ct.giaTriThuVe)}</td>
                               <td>{ct.hinhThucThanhLy}</td>
+                              <td>
+                                <span className={`badge ${
+                                  ct.trangThai === "Đã duyệt" ? "bg-success" : 
+                                  ct.trangThai === "Từ chối" ? "bg-danger" : 
+                                  "bg-warning"
+                                }`}>
+                                  {ct.trangThai || "Chờ duyệt"}
+                                </span>
+                              </td>
+                              <td>{ct.tenNguoiDuyet || "-"}</td>
+                              <td>{ct.ngayThanhLy ? formatDate(ct.ngayThanhLy) : "-"}</td>
                             </tr>
                           ))}
                         </tbody>
