@@ -42,6 +42,9 @@ public class ChiTietThanhLyDto {
     @JsonProperty("tinh_trang")
     private String tinhTrang; // Ví dụ: Hỏng, Mục nát, Hết khấu hao...
 
+    @JsonProperty("trang_thai")
+    private String trangThai; // "Duyệt", "Từ chối", "Chờ duyệt"
+
     // === THÔNG TIN KẾ TOÁN TRƯỚC THANH LÝ ===
     @JsonProperty("nguyen_gia")
     private BigDecimal nguyenGia;

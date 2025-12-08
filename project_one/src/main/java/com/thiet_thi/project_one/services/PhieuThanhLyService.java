@@ -89,6 +89,7 @@ public class PhieuThanhLyService implements IThanhLyService {
                     .giaTriThuVe(ctDto.getGiaTriThuVe() != null ? ctDto.getGiaTriThuVe() : BigDecimal.ZERO)
                     .ngayThanhLy(ctDto.getNgayThanhLy())
                     .ghiChu(ctDto.getGhiChu())
+                    .trangThai("Chờ duyệt")  // THÊM DÒNG NÀY – BẮT BUỘC!
                     .build();
 
             phieu.getChiTiet().add(chiTiet);
@@ -251,14 +252,20 @@ public class PhieuThanhLyService implements IThanhLyService {
         // Cập nhật trạng thái phiếu
         phieu.setTrangThai("Hoàn tất");
         phieu.setNguoiDuyet(nguoiDuyet);
-        phieu.setNgayDuyet(java.time.LocalDate.now());
+        phieu.setNgayDuyet(LocalDate.now());
+        phieu.setNgayThanhLy(LocalDate.now());
 
         // Cập nhật trạng thái tất cả thiết bị trong phiếu thành "Đã thanh lý"
         for (ChiTietPhieuThanhLy ct : phieu.getChiTiet()) {
             ThietBi tb = ct.getThietBi();
             tb.setTinhTrang("Đã thanh lý");
             thietBiRepository.save(tb);
+            ct.setTrangThai("Đã duyệt");           // TRẠNG THÁI CHI TIẾT = DUYỆT
+            ct.setNguoiDuyet(nguoiDuyet);       // NGƯỜI DUYỆT
+            ct.setNgayThanhLy(LocalDate.now()); // NGÀY THANH LÝ
+            chiTietRepository.save(ct);
         }
+
 
         return phieuThanhLyRepository.save(phieu);
     }
@@ -289,6 +296,10 @@ public class PhieuThanhLyService implements IThanhLyService {
             // Nếu bạn có lưu trạng thái cũ → dùng nó, còn không thì mặc định "Đang sử dụng"
             tb.setTinhTrang("Đang sử dụng");
             thietBiRepository.save(tb);
+            ct.setTrangThai("Từ chối");         // TRẠNG THÁI CHI TIẾT = TỪ CHỐI
+            ct.setNguoiDuyet(nguoiDuyet);            // NGƯỜI DUYỆT
+            ct.setNgayThanhLy(LocalDate.now()); // GHI NHẬN NGÀY TỪ CHỐI
+            chiTietRepository.save(ct);
         }
 
         return phieuThanhLyRepository.save(phieu);

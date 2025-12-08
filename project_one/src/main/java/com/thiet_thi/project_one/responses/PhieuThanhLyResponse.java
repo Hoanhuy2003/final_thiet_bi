@@ -45,7 +45,7 @@ public class PhieuThanhLyResponse {
 
     private List<ChiTietResponse> chiTiet;
 
-    // ================= INNER CLASS CHI TIẾT THANH LÝ =================
+    // ================= CHI TIẾT THANH LÝ – ĐÃ THÊM TRẠNG THÁI & NGƯỜI DUYỆT =================
     @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
     public static class ChiTietResponse {
         private String maCttl;
@@ -55,7 +55,10 @@ public class PhieuThanhLyResponse {
         private String tenLoai;
         private String maPhong;
         private String tenPhong;
-        private String tinhTrang;
+        private String tinhTrang; // Trạng thái thiết bị
+
+        // THÊM: Trạng thái duyệt từng món
+        private String trangThai; // "Chờ duyệt", "Duyệt", "Từ chối"
 
         private BigDecimal nguyenGia;
         private BigDecimal giaTriConLai;
@@ -70,11 +73,12 @@ public class PhieuThanhLyResponse {
 
         private String ghiChu;
 
+        // Người duyệt từng món (có thể null nếu từ chối)
         private String maNguoiDuyet;
         private String tenNguoiDuyet;
     }
 
-    // ================= HÀM CHUYỂN ĐỔI SIÊU CHUẨN – GIỐNG HỆT KIỂM KÊ =================
+    // ================= HÀM CHUYỂN ĐỔI SIÊU CHUẨN =================
     public static PhieuThanhLyResponse from(PhieuThanhLy phieu) {
 
         // Tính tổng giá trị thu về
@@ -83,12 +87,13 @@ public class PhieuThanhLyResponse {
                 .filter(g -> g != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Map danh sách chi tiết
+        // Map danh sách chi tiết – ĐÃ THÊM TRẠNG THÁI & NGƯỜI DUYỆT
         List<ChiTietResponse> chiTietList = phieu.getChiTiet().stream()
                 .map(ct -> {
                     ThietBi tb = ct.getThietBi();
                     LoaiThietBi loai = tb.getLoaiThietBi();
                     Phong phong = tb.getPhong();
+                    NguoiDung nguoiDuyetChiTiet = ct.getNguoiDuyet();
 
                     return ChiTietResponse.builder()
                             .maCttl(ct.getMaCTTL())
@@ -99,6 +104,7 @@ public class PhieuThanhLyResponse {
                             .maPhong(phong != null ? phong.getMaPhong() : null)
                             .tenPhong(phong != null ? phong.getTenPhong() : null)
                             .tinhTrang(tb.getTinhTrang())
+                            .trangThai(ct.getTrangThai() != null ? ct.getTrangThai() : "Chờ duyệt") // THÊM TRẠNG THÁI
                             .nguyenGia(tb.getGiaTriBanDau())
                             .giaTriConLai(tb.getGiaTriHienTai())
                             .soNamSuDung(ct.getSoNamSuDung())
@@ -107,8 +113,8 @@ public class PhieuThanhLyResponse {
                             .giaTriThuVe(ct.getGiaTriThuVe())
                             .ngayThanhLy(ct.getNgayThanhLy())
                             .ghiChu(ct.getGhiChu())
-                            .maNguoiDuyet(ct.getNguoiDuyet() != null ? ct.getNguoiDuyet().getTenND() : null)
-                            .tenNguoiDuyet(ct.getNguoiDuyet() != null ? ct.getNguoiDuyet().getTenND() : null)
+                            .maNguoiDuyet(nguoiDuyetChiTiet != null ? nguoiDuyetChiTiet.getMaND() : null)
+                            .tenNguoiDuyet(nguoiDuyetChiTiet != null ? nguoiDuyetChiTiet.getTenND() : null)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -123,9 +129,9 @@ public class PhieuThanhLyResponse {
                 .ngayThanhLy(phieu.getNgayThanhLy())
                 .ngayDuyet(phieu.getNgayDuyet())
                 .trangThai(phieu.getTrangThai())
-                .maNguoiTao(phieu.getNguoiLap() != null ? phieu.getNguoiLap().getTenND() : null)
+                .maNguoiTao(phieu.getNguoiLap() != null ? phieu.getNguoiLap().getMaND() : null)
                 .tenNguoiTao(phieu.getNguoiLap() != null ? phieu.getNguoiLap().getTenND() : null)
-                .maNguoiDuyet(phieu.getNguoiDuyet() != null ? phieu.getNguoiDuyet().getTenND() : null)
+                .maNguoiDuyet(phieu.getNguoiDuyet() != null ? phieu.getNguoiDuyet().getMaND() : null)
                 .tenNguoiDuyet(phieu.getNguoiDuyet() != null ? phieu.getNguoiDuyet().getTenND() : null)
                 .tongThietBi(chiTietList.size())
                 .tongGiaTriThuVe(tongThuVe)

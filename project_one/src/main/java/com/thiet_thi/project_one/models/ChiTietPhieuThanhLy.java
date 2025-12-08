@@ -1,6 +1,7 @@
 // 2. CHI_TIET_THANH_LY.java
 package com.thiet_thi.project_one.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -26,6 +27,10 @@ public class ChiTietPhieuThanhLy {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ma_tb", nullable = false)
     private ThietBi thietBi;
+
+    // TRẠNG THÁI CHI TIẾT: Duyệt / Từ chối / Chờ duyệt
+    @Column(name = "trang_thai", length = 20)
+    private String trangThai; // "Chờ duyệt", "Duyệt", "Từ chối"
 
     // Thông tin kế toán trước thanh lý
     @Column(name = "nguyen_gia", precision = 18, scale = 2)
