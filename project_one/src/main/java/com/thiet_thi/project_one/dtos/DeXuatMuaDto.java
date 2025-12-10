@@ -33,6 +33,8 @@ public class DeXuatMuaDto {
 
     @JsonProperty("ten_nguoi_tao")
     private String tenNguoiTao;
+    @JsonProperty("ma_phong")
+    private String maPhong;
 
 
     @JsonProperty("chi_tiet")

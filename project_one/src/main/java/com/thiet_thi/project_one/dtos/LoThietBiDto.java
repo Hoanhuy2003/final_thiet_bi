@@ -48,4 +48,6 @@ public class LoThietBiDto {
 
     @JsonProperty("ghi_chu")
     private String ghiChu;
+    @JsonProperty("ma_phong")
+    private String maPhong;
 }

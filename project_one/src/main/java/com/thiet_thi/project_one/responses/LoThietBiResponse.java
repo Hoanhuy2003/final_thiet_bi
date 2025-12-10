@@ -63,7 +63,7 @@ public class LoThietBiResponse {
                 .tenLo(lo.getTenLo())
                 .soLuong(lo.getSoLuong())
                 .donGia(lo.getDonGia())
-                .tongTien(total) // <--- Trả về giá trị tính toán
+                .tongTien(total)
                 .ngayNhap(lo.getNgayNhap())
                 .soHoaDon(lo.getSoHoaDon())
                 .ngayHoaDon(lo.getNgayHoaDon())

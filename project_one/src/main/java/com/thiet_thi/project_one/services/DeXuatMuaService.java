@@ -8,6 +8,8 @@ import com.thiet_thi.project_one.models.*;
 import com.thiet_thi.project_one.repositorys.*;
 import com.thiet_thi.project_one.responses.DeXuatMuaResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +26,18 @@ public class DeXuatMuaService implements IDeXuatMuaService {
     private final DeXuatMuaRepository deXuatMuaRepository;
     private final NguoiDungRepository nguoiDungRepository;
     private final LoaiThietBiRepository loaiThietBiRepository;
+    private final PhongRepository phongRepository;
 
     @Override
     public DeXuatMuaResponse create(DeXuatMuaDto dto) throws DataNotFoundException {
         // 1. Tìm người tạo
         NguoiDung nguoiTao = nguoiDungRepository.findById(dto.getMaND())
                 .orElseThrow(() -> new DataNotFoundException("Người dùng không tồn tại"));
-
+        Phong phongDuKien = null;
+        if (dto.getMaPhong() != null && !dto.getMaPhong().isEmpty()) {
+            phongDuKien = phongRepository.findById(dto.getMaPhong())
+                    .orElseThrow(() -> new DataNotFoundException("Phòng không tồn tại"));
+        }
         // 2. Tạo Entity cha (DeXuatMua)
         DeXuatMua deXuat = DeXuatMua.builder()
                 .maDeXuat(dto.getMaDeXuat() != null ? dto.getMaDeXuat() : "DX-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
@@ -39,7 +46,7 @@ public class DeXuatMuaService implements IDeXuatMuaService {
                 .ngayTao(LocalDate.now())
                 .trangThai("Chờ duyệt") // Mặc định
                 .nguoiTao(nguoiTao)
-
+                .phong(phongDuKien)
                 .build();
 
         // 3. Xử lý danh sách chi tiết (Quan trọng)
@@ -54,6 +61,7 @@ public class DeXuatMuaService implements IDeXuatMuaService {
                         .loaiThietBi(loai)
                         .soLuong(ctDto.getSoLuong())
                         .donGia(ctDto.getDonGia())
+                        .ghiChu(ctDto.getGhiChu())
                         .build();
 
                 // Add vào Set của cha
@@ -133,5 +141,31 @@ public class DeXuatMuaService implements IDeXuatMuaService {
 
         // 4. Trả về Response DTO đã cập nhật
         return DeXuatMuaResponse.from(saved);
+    }
+
+
+    @Override
+    public Page<DeXuatMuaResponse> getAllPage(Pageable pageable) {
+        Page<DeXuatMua> dxPage = deXuatMuaRepository.findAll(pageable);
+        return dxPage.map(DeXuatMuaResponse::from);
+    }
+
+    // Triển khai hàm Tìm kiếm/Lọc Nâng cao
+    @Override
+    public Page<DeXuatMuaResponse> searchAndFilter(
+            String search,
+            String trangThai,
+            String tieuDe,
+            Pageable pageable) {
+
+        // Gọi hàm Repository mới với các tham số lọc
+        Page<DeXuatMua> dxPage = deXuatMuaRepository.findByCriteria(
+                search,
+                trangThai,
+                tieuDe,
+                pageable
+        );
+
+        return dxPage.map(DeXuatMuaResponse::from);
     }
 }

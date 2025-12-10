@@ -2,22 +2,32 @@ import { useState, useEffect } from "react";
 import { equipmentService } from "../../services/equipmentService";
 import axiosInstance from "../../api/axiosInstance"; 
 import toast from "react-hot-toast";
+import Select from "react-select"; // 👇 Import thư viện
 
 export default function EquipmentCreateModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // State chứa danh sách từ API
-  const [dsPhong, setDsPhong] = useState([]);
-  const [dsLoai, setDsLoai] = useState([]);
+  // State chứa options cho React-Select
+  const [loaiOptions, setLoaiOptions] = useState([]);
+  const [phongOptions, setPhongOptions] = useState([]);
+
+  // Options cứng cho trạng thái
+  const trangThaiOptions = [
+    { value: "Đang sử dụng", label: "Đang sử dụng" },
+    { value: "Sẵn sàng", label: "Sẵn sàng" },
+    { value: "Bảo trì", label: "Bảo trì" },
+    { value: "Hỏng hóc", label: "Hỏng hóc" },
+    { value: "Chờ thanh lý", label: "Chờ thanh lý" }
+  ];
 
   const [form, setForm] = useState({
     ten_tb: "",
-    ma_loai: "",
+    ma_loai: null, // React-Select dùng null
     ma_lo: null,
-    ma_phong: "",        
+    ma_phong: null, // React-Select dùng null
     gia_tri_ban_dau: "",
-    tinh_trang: "Đang sử dụng",
+    tinh_trang: "Đang sử dụng", // Mặc định chuỗi (vì convert lúc render)
     ngay_su_dung: new Date().toISOString().split("T")[0],
   });
 
@@ -26,6 +36,7 @@ export default function EquipmentCreateModal() {
     const handler = () => setIsOpen(true);
     window.addEventListener("openCreateEquipmentModal", handler);
     
+    // Gọi API lấy danh mục
     fetchMasterData(); 
 
     return () => window.removeEventListener("openCreateEquipmentModal", handler);
@@ -33,14 +44,18 @@ export default function EquipmentCreateModal() {
 
   const fetchMasterData = async () => {
     try {
-      // Chỉ cần gọi API Phòng và Loại thiết bị
       const [resPhong, resLoai] = await Promise.all([
         axiosInstance.get("/api/phong"),
         axiosInstance.get("/api/loai_thiet_bi")
       ]);
 
-      setDsPhong(resPhong.data || []);
-      setDsLoai(resLoai.data || []);
+      // Convert Phong -> Options
+      const rawPhong = resPhong.data.result || resPhong.data || [];
+      setPhongOptions(rawPhong.map(p => ({ value: p.maPhong, label: p.tenPhong })));
+
+      // Convert Loai -> Options
+      const rawLoai = resLoai.data.result || resLoai.data || [];
+      setLoaiOptions(rawLoai.map(l => ({ value: l.maLoai, label: l.tenLoai })));
 
     } catch (error) {
       console.error("Lỗi tải dữ liệu danh mục:", error);
@@ -62,9 +77,9 @@ export default function EquipmentCreateModal() {
 
     const payload = {
       ten_tb: form.ten_tb.trim(),
-      ma_loai: form.ma_loai,
+      ma_loai: form.ma_loai, // Gửi value (ID)
       ma_lo: form.ma_lo || null,
-      ma_phong: form.ma_phong, 
+      ma_phong: form.ma_phong, // Gửi value (ID)
       tinh_trang: form.tinh_trang,
       gia_tri_ban_dau: Number(form.gia_tri_ban_dau),
       gia_tri_hien_tai: Number(form.gia_tri_ban_dau),
@@ -79,12 +94,14 @@ export default function EquipmentCreateModal() {
       
       // Reset form
       setForm({
-        ten_tb: "", ma_loai: "", ma_phong: "", 
+        ten_tb: "", ma_loai: null, ma_phong: null, 
         gia_tri_ban_dau: "", tinh_trang: "Đang sử dụng", 
         ngay_su_dung: new Date().toISOString().split("T")[0]
       });
       
-      window.dispatchEvent(new Event("equipmentFilterChange"));
+      // Reload bảng
+      window.dispatchEvent(new Event("reloadEquipmentTable")); 
+      
     } catch (err) {
       console.error(err);
       toast.error("Lỗi: " + (err.response?.data?.message || err.message));
@@ -93,15 +110,33 @@ export default function EquipmentCreateModal() {
     }
   };
 
+  // Helper tìm Object từ ID (Để hiển thị lên React-Select)
+  const getValueObj = (options, value) => {
+      return options.find(op => op.value === value) || null;
+  };
+
+  // Style giống Bootstrap
+  const customStyles = {
+    control: (base) => ({
+      ...base,
+      borderColor: "#dee2e6",
+      borderRadius: "0.375rem",
+      minHeight: "38px",
+      boxShadow: "none",
+      "&:hover": { borderColor: "#86b7fe" }
+    }),
+    menu: (base) => ({ ...base, zIndex: 1060 })
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
       <div className="modal-dialog modal-lg modal-dialog-scrollable">
         <div className="modal-content">
-          <div className="modal-header">
+          <div className="modal-header bg-primary text-white">
             <h5 className="modal-title fw-bold">Thêm thiết bị mới</h5>
-            <button type="button" className="btn-close" onClick={() => setIsOpen(false)} disabled={loading}></button>
+            <button type="button" className="btn-close btn-close-white" onClick={() => setIsOpen(false)} disabled={loading}></button>
           </div>
           <div className="modal-body">
             <div className="row g-3">
@@ -119,42 +154,32 @@ export default function EquipmentCreateModal() {
                 />
               </div>
 
-              {/* Loại thiết bị (Hiển thị Tên, Value là Mã) */}
+              {/* Loại thiết bị (React-Select) */}
               <div className="col-12 col-md-6">
                 <label className="form-label fw-semibold"><span className="text-danger">*</span> Loại thiết bị</label>
-                <select
-                  className="form-select"
-                  value={form.ma_loai}
-                  onChange={(e) => setForm({ ...form, ma_loai: e.target.value })}
-                  disabled={loading}
-                >
-                  <option value="">-- Chọn loại thiết bị --</option>
-                  {dsLoai.map((item) => (
-                    <option key={item.maLoai} value={item.maLoai}>
-                      {item.tenLoai} {/* Hiển thị tên loại */}
-                    </option>
-                  ))}
-                </select>
-                {dsLoai.length === 0 && <small className="text-muted">Đang tải danh sách loại...</small>}
+                <Select 
+                    options={loaiOptions}
+                    value={getValueObj(loaiOptions, form.ma_loai)}
+                    onChange={(opt) => setForm({ ...form, ma_loai: opt?.value })}
+                    placeholder="-- Chọn loại --"
+                    styles={customStyles}
+                    isDisabled={loading}
+                    noOptionsMessage={() => "Không tìm thấy loại"}
+                />
               </div>
 
-              {/* Phòng đặt thiết bị (Hiển thị Tên, Value là Mã) */}
+              {/* Phòng đặt (React-Select) */}
               <div className="col-12 col-md-6">
                 <label className="form-label fw-semibold"><span className="text-danger">*</span> Phòng đặt</label>
-                <select
-                  className="form-select"
-                  value={form.ma_phong}
-                  onChange={(e) => setForm({ ...form, ma_phong: e.target.value })}
-                  disabled={loading}
-                >
-                  <option value="">-- Chọn phòng --</option>
-                  {dsPhong.map((p) => (
-                    <option key={p.maPhong} value={p.maPhong}>
-                      {p.tenPhong} {/* Hiển thị tên phòng */}
-                    </option>
-                  ))}
-                </select>
-                {dsPhong.length === 0 && <small className="text-muted">Đang tải danh sách phòng...</small>}
+                <Select 
+                    options={phongOptions}
+                    value={getValueObj(phongOptions, form.ma_phong)}
+                    onChange={(opt) => setForm({ ...form, ma_phong: opt?.value })}
+                    placeholder="-- Tìm phòng --"
+                    styles={customStyles}
+                    isDisabled={loading}
+                    noOptionsMessage={() => "Không tìm thấy phòng"}
+                />
               </div>
 
               {/* Nguyên giá */}
@@ -171,20 +196,18 @@ export default function EquipmentCreateModal() {
                 />
               </div>
 
-              {/* Trạng thái */}
+              {/* Trạng thái (React-Select) */}
               <div className="col-12 col-md-6">
                 <label className="form-label fw-semibold">Trạng thái ban đầu</label>
-                <select
-                  className="form-select"
-                  value={form.tinh_trang}
-                  onChange={(e) => setForm({ ...form, tinh_trang: e.target.value })}
-                  disabled={loading}
-                >
-                  <option value="Đang sử dụng">Đang sử dụng</option>
-                  <option value="Bảo trì">Bảo trì</option>
-                  <option value="Hỏng hóc">Hỏng hóc</option>
-                  <option value="Chờ thanh lý">Chờ thanh lý</option>
-                </select>
+                <Select 
+                    options={trangThaiOptions}
+                    // Mặc định "Đang sử dụng" nếu null
+                    value={getValueObj(trangThaiOptions, form.tinh_trang) || trangThaiOptions[0]}
+                    onChange={(opt) => setForm({ ...form, tinh_trang: opt?.value })}
+                    placeholder="-- Trạng thái --"
+                    styles={customStyles}
+                    isDisabled={loading}
+                />
               </div>
             </div>
           </div>
@@ -192,7 +215,7 @@ export default function EquipmentCreateModal() {
             <button className="btn btn-outline-secondary" onClick={() => setIsOpen(false)} disabled={loading}>
               Hủy
             </button>
-            <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
+            <button className="btn bg-primary text-white fw-bold" onClick={handleSubmit} disabled={loading}>
               {loading ? "Đang xử lý..." : "Thêm thiết bị"}
             </button>
           </div>

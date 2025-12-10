@@ -1,24 +1,42 @@
 import { useState, useEffect } from "react";
-import { Package, Download } from "lucide-react";
-
-const statusColors = {
-  "Chờ phê duyệt": "badge-warning",
-  "Đã nhập kho": "badge-success",
-  "Đã phân phối": "badge-info",
-};
+import { X, Package, Tag } from "lucide-react"; // Bỏ Download
+// Bỏ import service gọi API thiết bị con
+// import { equipmentService } from "../../services/equipmentService"; 
 
 export default function BatchDetailModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [batch, setBatch] = useState(null);
+  
+  // Bỏ các state liên quan đến thiết bị con:
+  // const [devices, setDevices] = useState([]); 
+  // const [loadingDevices, setLoadingDevices] = useState(false);
+
+  // Helper format tiền
+  const formatMoney = (amount) => {
+    return (Number(amount) || 0).toLocaleString("vi-VN") + "đ";
+  };
+
+  // Helper render trạng thái lô
+  const renderBatchStatus = (status) => {
+    if (status === null || status === 0) return <span className="badge bg-warning text-dark">Mới nhập</span>;
+    if (status === 1) return <span className="badge bg-success">Đã tạo tài sản</span>;
+    return <span className="badge bg-secondary">Khác</span>;
+  };
+  
+  // Bỏ hàm loadDevices
 
   useEffect(() => {
-    const handler = () => {
+    const handler = async () => {
       const data = localStorage.getItem("selectedBatch");
       if (data) {
-        setBatch(JSON.parse(data));
+        const parsedBatch = JSON.parse(data);
+        setBatch(parsedBatch);
         setIsOpen(true);
+        
+        // Loại bỏ hoàn toàn logic gọi API thiết bị con ở đây
       }
     };
+    
     window.addEventListener("openDetailBatchModal", handler);
     return () => window.removeEventListener("openDetailBatchModal", handler);
   }, []);
@@ -27,58 +45,85 @@ export default function BatchDetailModal() {
 
   return (
     <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <div className="modal-dialog modal-xl modal-dialog-centered">
-        <div className="modal-content">
-          <div className="modal-header">
+      <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div className="modal-content border-0 shadow-lg">
+          
+          <div className="modal-header bg-primary text-white">
             <div>
-              <h5 className="modal-title">Chi tiết lô thiết bị</h5>
-              <p className="text-muted mb-0 text-sm">Thông tin chi tiết về lô {batch.ma_lo}</p>
+              <h5 className="modal-title fw-bold">Chi tiết lô hàng: {batch.maLo}</h5>
+              <p className="mb-0 text-white-50 small">{batch.tenLo}</p>
             </div>
-            <button type="button" className="btn-close" onClick={() => setIsOpen(false)}></button>
+            <button type="button" className="btn-close btn-close-white" onClick={() => setIsOpen(false)}></button>
           </div>
+          
           <div className="modal-body">
-            <div className="row g-3 mb-4">
-              <div className="col-6"><label className="form-label mb-1">Mã lô</label><p>{batch.ma_lo}</p></div>
-              <div className="col-6"><label className="form-label mb-1">Tên lô</label><p>{batch.ten_lo}</p></div>
-              <div className="col-6"><label className="form-label mb-1">Loại thiết bị</label><p>{batch.loai_thiet_bi}</p></div>
-              <div className="col-6"><label className="form-label mb-1">Số lượng</label><p>{batch.so_luong} thiết bị</p></div>
-              <div className="col-6"><label className="form-label mb-1">Nguyên giá/đơn vị</label><p>{batch.nguyen_gia_don_vi.toLocaleString("vi-VN")}đ</p></div>
-              <div className="col-6"><label className="form-label mb-1">Tổng giá trị</label><p>{batch.tong_gia_tri.toLocaleString("vi-VN")}đ</p></div>
-              <div className="col-6"><label className="form-label mb-1">Ngày tạo</label><p>{batch.ngay_tao}</p></div>
-              <div className="col-6"><label className="form-label mb-1">Người tạo</label><p>{batch.nguoi_tao}</p></div>
-              <div className="col-12">
-                <label className="form-label mb-1">Trạng thái</label>
-                <span className={`badge ${statusColors[batch.trang_thai]}`}>{batch.trang_thai}</span>
-              </div>
-            </div>
+            
+            {/* THÔNG TIN CHUNG */}
+            <h6 className="fw-bold mb-3 text-muted">THÔNG TIN LÔ HÀNG</h6>
+            <div className="row g-3 mb-4 p-3 bg-light rounded shadow-sm">
+                
+                {/* Dòng 1: Tên lô, Loại, NCC */}
+                <div className="col-md-6">
+                    <label className="form-label text-muted small fw-bold">Tên Lô / Mã Lô</label>
+                    <p className="fw-medium mb-0">{batch.tenLo} ({batch.maLo})</p>
+                </div>
+                <div className="col-md-3">
+                    <label className="form-label text-muted small fw-bold">Loại thiết bị</label>
+                    <p className="fw-medium mb-0">{batch.tenLoai || "N/A"}</p>
+                </div>
+                <div className="col-md-3">
+                    <label className="form-label text-muted small fw-bold">Trạng thái</label>
+                    <div>{renderBatchStatus(batch.trangThai)}</div>
+                </div>
 
-            <div className="border-top pt-3">
-              <h6 className="mb-3 d-flex align-items-center gap-2">
-                <Package size={16} />
-                Danh sách thiết bị trong lô (25 thiết bị)
-              </h6>
-              <div className="border rounded" style={{ maxHeight: "240px", overflowY: "auto" }}>
-                <table className="table table-sm mb-0">
-                  <thead><tr><th>Mã tài sản</th><th>Tên thiết bị</th><th>Trạng thái</th></tr></thead>
-                  <tbody>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i}>
-                        <td>TB-2024-{String(i + 1).padStart(3, "0")}</td>
-                        <td>Máy tính Dell Latitude 5420</td>
-                        <td><span className="badge badge-success">Đang sử dụng</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                <hr className="my-2"/>
+
+                {/* Dòng 2: Số lượng, Giá trị, Ngày nhập */}
+                <div className="col-md-3">
+                    <label className="form-label text-muted small fw-bold">Số lượng</label>
+                    <p className="fw-bold mb-0">{batch.soLuong}</p>
+                </div>
+                <div className="col-md-3">
+                    <label className="form-label text-muted small fw-bold">Đơn giá nhập</label>
+                    <p className="fw-medium mb-0">{formatMoney(batch.donGia)}</p>
+                </div>
+                <div className="col-md-3">
+                    <label className="form-label text-muted small fw-bold">Tổng giá trị</label>
+                    <p className="fw-bold text-success mb-0">{formatMoney(batch.tongTien)}</p>
+                </div>
+                <div className="col-md-3">
+                    <label className="form-label text-muted small fw-bold">Ngày nhập</label>
+                    <p className="fw-medium mb-0">{batch.ngayNhap}</p>
+                </div>
+
+                {/* Dòng 3: NCC và Đề xuất */}
+                <div className="col-md-6">
+                    <label className="form-label text-muted small fw-bold">Nhà cung cấp</label>
+                    <p className="fw-medium mb-0">{batch.tenNhaCungCap || "Chưa cập nhật"}</p>
+                </div>
+                <div className="col-md-6">
+                    <label className="form-label text-muted small fw-bold">Đề xuất liên quan</label>
+                    <p className="fw-medium mb-0">
+                        {batch.maDeXuat ? `${batch.tieuDeDeXuat} (${batch.maDeXuat})` : "Không có"}
+                    </p>
+                </div>
+
+                {/* Ghi chú chung */}
+                <div className="col-12">
+                    <label className="form-label text-muted small fw-bold">Ghi chú / Thông số kỹ thuật chung</label>
+                    <p className="small mb-0 border rounded p-2 bg-white">{batch.ghiChu || "N/A"}</p>
+                </div>
+
             </div>
+          
+            
           </div>
-          <div className="modal-footer">
-            <button className="btn btn-outline-secondary" onClick={() => setIsOpen(false)}>Đóng</button>
-            <button className="btn btn-primary">
-              <Download size={16} className="me-2" />
-              Xuất danh sách
+          
+          <div className="modal-footer bg-light">
+            <button className="btn btn-outline-secondary" onClick={() => setIsOpen(false)}>
+                <X size={16} className="me-1"/> Đóng
             </button>
+            {/* Nút Xuất file cũng bị xóa */}
           </div>
         </div>
       </div>

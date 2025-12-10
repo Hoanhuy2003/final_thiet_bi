@@ -9,7 +9,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class DeXuatMuaResponse {
 
@@ -22,32 +21,36 @@ public class DeXuatMuaResponse {
 
     private String trangThai;
 
-    // Thông tin người tạo (Flatten data - Làm phẳng dữ liệu)
+    // --- THÔNG TIN NGƯỜI TẠO ---
     private String maNguoiTao;
     private String tenNguoiTao;
 
-    // Thông tin người duyệt
+
+    private String tenPhong;
+    private String tenDonVi;
+
+    // --- THÔNG TIN NGƯỜI DUYỆT ---
     private String maNguoiDuyet;
     private String tenNguoiDuyet;
+    @JsonFormat(pattern = "dd/MM/yyyy")
+    private LocalDate ngayDuyet;
 
-    // === CÁI FRONTEND CẦN NHẤT: TỔNG TIỀN ===
     private BigDecimal tongTien;
-
-    // Danh sách chi tiết (nếu cần hiển thị luôn)
     private List<ChiTietResponse> chiTiet;
 
-    // Helper class nhỏ để map chi tiết
     @Getter @Setter @Builder
     public static class ChiTietResponse {
         private String maCTDX;
         private String tenLoaiThietBi;
         private Integer soLuong;
         private BigDecimal donGia;
+        private String ghiChu;
         private BigDecimal thanhTien;
+        private Integer daNhap;
     }
 
     public static DeXuatMuaResponse from(DeXuatMua entity) {
-        // 1. Tính tổng tiền & Map danh sách chi tiết
+        // 1. Tính tổng tiền
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<ChiTietResponse> listChiTiet = new ArrayList<>();
 
@@ -61,12 +64,24 @@ public class DeXuatMuaResponse {
                         .tenLoaiThietBi(ct.getLoaiThietBi().getTenLoai())
                         .soLuong(ct.getSoLuong())
                         .donGia(ct.getDonGia())
+                        .ghiChu(ct.getGhiChu())
+                        .daNhap(ct.getSoLuongDaNhap())
                         .thanhTien(thanhTien)
                         .build());
             }
         }
 
-        // 2. Build Response
+        String tenDonVi = "N/A";
+        if (entity.getNguoiTao().getDonVi() != null) {
+            tenDonVi = entity.getNguoiTao().getDonVi().getTenDonVi();
+        }
+
+        String tenPhong = "Chưa chọn phòng";
+        if (entity.getPhong() != null) {
+            tenPhong = entity.getPhong().getTenPhong();
+        }
+
+        // 3. Build Response
         return DeXuatMuaResponse.builder()
                 .maDeXuat(entity.getMaDeXuat())
                 .tieuDe(entity.getTieuDe())
@@ -74,15 +89,16 @@ public class DeXuatMuaResponse {
                 .ngayTao(entity.getNgayTao())
                 .trangThai(entity.getTrangThai())
 
-                // Map User
                 .maNguoiTao(entity.getNguoiTao().getMaND())
                 .tenNguoiTao(entity.getNguoiTao().getTenND())
 
-                // Map Approver (Check null vì mới tạo chưa có người duyệt)
+                .tenPhong(tenPhong)
+                .tenDonVi(tenDonVi)
+
                 .maNguoiDuyet(entity.getNguoiDuyet() != null ? entity.getNguoiDuyet().getMaND() : null)
                 .tenNguoiDuyet(entity.getNguoiDuyet() != null ? entity.getNguoiDuyet().getTenND() : null)
+                .ngayDuyet(entity.getNgayDuyet())
 
-                // Gán tổng tiền đã tính
                 .tongTien(totalAmount)
                 .chiTiet(listChiTiet)
                 .build();

@@ -22,8 +22,9 @@ export default function PhieuThanhLyCreateModal() {
   useEffect(() => {
     const loadThietBi = async () => {
       try {
-        const data = await equipmentService.getAll();
-        const filtered = data.filter(tb => 
+        const data = await equipmentService.getAllAsList();
+        const dataArray = data.result || data.data || data;
+        const filtered = dataArray.filter(tb => 
           ["Đang sử dụng", "Hỏng hóc", "Bảo trì"].includes(tb.tinhTrang)
         );
         setDanhSachTB(filtered);

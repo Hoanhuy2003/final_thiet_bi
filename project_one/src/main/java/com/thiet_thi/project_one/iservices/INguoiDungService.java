@@ -5,6 +5,8 @@ import com.thiet_thi.project_one.responses.NguoiDungResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 public interface INguoiDungService {
 
     NguoiDungResponse createNguoiDung(NguoiDungDto dto);
@@ -15,7 +17,11 @@ public interface INguoiDungService {
 
     NguoiDungResponse getNguoiDungById(String maNguoiDung);
 
-    Page<NguoiDungResponse> getAllNguoiDung(Pageable pageable);
+    List<NguoiDungResponse> getAllAsList();
 
     NguoiDungResponse getMyInfo();
+
+    Page<NguoiDungResponse> searchAndFilter(String search, String vaiTro, String donVi, String trangThai, Pageable pageable);
+
+    // TRONG NguoiDungService (Implementation)
 }

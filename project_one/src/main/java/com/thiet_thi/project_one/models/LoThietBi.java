@@ -1,5 +1,6 @@
 package com.thiet_thi.project_one.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal; // Dùng BigDecimal cho tiền tệ là chuẩn nhất
@@ -28,6 +29,7 @@ public class LoThietBi {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ma_ctdx", nullable = false)
+    @JsonIgnore
     private ChiTietDeXuatMua chiTietDeXuatMua;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -1,5 +1,6 @@
 package com.thiet_thi.project_one.iservices;
 
+import com.thiet_thi.project_one.dtos.LoTBStatDto;
 import com.thiet_thi.project_one.dtos.LoThietBiDto;
 import com.thiet_thi.project_one.exceptions.DataNotFoundException;
 import com.thiet_thi.project_one.models.LoThietBi;
@@ -19,4 +20,5 @@ public interface ILoThietBiService {
 
 
     List<LoThietBi> nhapKhoTuDeXuat(String maDeXuat) throws DataNotFoundException;
+    LoTBStatDto getStatistics();
 }

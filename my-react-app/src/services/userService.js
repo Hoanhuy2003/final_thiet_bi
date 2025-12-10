@@ -1,13 +1,20 @@
 import axiosInstance from '../api/axiosInstance';
 
+
 export const getMyInfo = async () => {
   const res = await axiosInstance.get('/api/nguoi_dung/myInfo');
   return res.data.result;
 };
 
-export const getAllUsers = async (page = 0, size = 10, search = '') => {
-  const params = { page, size };
-  if (search?.trim()) params.search = search.trim();
+
+export const getAllUsers = async (page = 0, size = 10, search = '', filters = {}) => {
+  
+  const params = { 
+    page, 
+    size,
+    search: search || undefined, 
+    ...filters
+  };
 
   const response = await axiosInstance.get('/api/nguoi_dung', { params });
   const result = response.data.result;
@@ -18,6 +25,27 @@ export const getAllUsers = async (page = 0, size = 10, search = '') => {
     totalElements: result.totalElements || 0,
     currentPage: result.number || 0,
   };
+};
+
+
+export const getAllList = async () => {
+  try {
+    
+    const res = await axiosInstance.get('/api/nguoi_dung/list'); 
+  
+    const data = res.data?.result || res.data;
+    
+    // Nếu trả về dạng Page (có content), lấy content. Nếu là Array, lấy luôn.
+    if (data && Array.isArray(data.content)) {
+        return data.content;
+    } else if (Array.isArray(data)) {
+        return data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Lỗi lấy danh sách người dùng cho select:", error);
+    return [];
+  }
 };
 
 export const deleteUser = async (maNguoiDung) => {
@@ -40,17 +68,12 @@ export const updateUser = async (maNguoiDung, userData) => {
 // ---  XỬ LÝ ĐỔI TRẠNG THÁI ---
 export const updateUserStatus = async (currentUser, newStatus) => {
   const payload = {
-    // 1. Map dữ liệu cũ sang snake_case (để Backend không bị lỗi null)
     ten_nd: currentUser.hoTen, 
     email: currentUser.email,
     so_dien_thoai: currentUser.soDienThoai || "",
     ten_dang_nhap: currentUser.tenDangNhap || currentUser.username,
-    
-    // 2. Lấy ID từ object con (nếu có)
     ma_don_vi: currentUser.donVi?.maDonVi || null,
     ma_vai_tro: currentUser.maVaiTro?.maVaiTro || null,
-
-    // 3. Đổi trạng thái
     trang_thai: newStatus 
   };
 
@@ -60,6 +83,7 @@ export const updateUserStatus = async (currentUser, newStatus) => {
 const userService = {
   getMyInfo,
   getAllUsers,
+  getAllList, 
   deleteUser,
   getUserById,
   createUser,

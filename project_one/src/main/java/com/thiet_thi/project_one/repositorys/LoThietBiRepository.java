@@ -1,5 +1,6 @@
 package com.thiet_thi.project_one.repositorys;
 
+import com.thiet_thi.project_one.dtos.LoTBStatDto;
 import com.thiet_thi.project_one.models.LoThietBi;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,7 +16,6 @@ public interface LoThietBiRepository extends JpaRepository<LoThietBi, String> {
     Integer sumSoLuongDaNhap(@Param("maCTDX") String maCTDX);
 
     // 1. Tìm tất cả lô thuộc về một Đề xuất Mua sắm cụ thể
-    // Dùng cơ chế "Underscore" (_) để đi sâu vào các quan hệ:
     // LoThietBi -> ChiTietDeXuatMua -> DeXuatMua -> MaDeXuat
     List<LoThietBi> findByChiTietDeXuatMua_DeXuatMua_MaDeXuat(String maDeXuat);
 
@@ -28,4 +28,11 @@ public interface LoThietBiRepository extends JpaRepository<LoThietBi, String> {
 
     // 4. Lấy danh sách lô sắp xếp theo ngày nhập mới nhất
     List<LoThietBi> findAllByOrderByNgayNhapDesc();
+
+    @Query("SELECT new com.thiet_thi.project_one.dtos.LoTBStatDto(" +
+            "COUNT(l), " +
+            "COALESCE(SUM(l.soLuong), 0), " +
+            "COALESCE(SUM(l.donGia * l.soLuong), 0)) " +
+            "FROM LoThietBi l")
+    LoTBStatDto getStatistics();
 }

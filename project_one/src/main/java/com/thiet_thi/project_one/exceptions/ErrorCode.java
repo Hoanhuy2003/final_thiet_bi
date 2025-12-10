@@ -18,8 +18,9 @@ public enum ErrorCode {
     ROLE_NOT_EXISTED(2001, "Vai trò không tồn tại", HttpStatus.NOT_FOUND),
     ROLE_EXISTED(2002, "Vai trò đã tồn tại", HttpStatus.NOT_FOUND),
     USER_NOT_APPROVED(3001, "Tài khoản đang chờ quản trị viên duyệt", HttpStatus.UNAUTHORIZED),
-    USER_BLOCKED(3002, "Tài khoản đã bị khóa", HttpStatus.FORBIDDEN);
-
+    USER_BLOCKED(3002, "Tài khoản đã bị khóa", HttpStatus.FORBIDDEN),
+    PROCUREMENT_NOT_APPROVED(4001, "Đề xuất chưa được duyệt, không thể nhập kho", HttpStatus.BAD_REQUEST),
+    IMPORT_EXCEEDS_LIMIT(4002, "Số lượng nhập vượt quá số lượng đề xuất", HttpStatus.BAD_REQUEST),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

@@ -3,27 +3,40 @@ import { Edit } from "lucide-react";
 import { equipmentService } from "../../services/equipmentService";
 import axiosInstance from "../../api/axiosInstance";
 import toast from "react-hot-toast";
+import Select from "react-select";
 
 export default function EquipmentEditModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [equipmentId, setEquipmentId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // THÊM 2 STATE NÀY – BẮT BUỘC!
-  const [dsLoai, setDsLoai] = useState([]);
-  const [dsPhong, setDsPhong] = useState([]);
+  // State lưu danh sách Options cho React-Select
+  const [loaiOptions, setLoaiOptions] = useState([]);
+  const [phongOptions, setPhongOptions] = useState([]);
+
+  // Options cứng cho trạng thái
+  const trangThaiOptions = [
+    { value: "Đang sử dụng", label: "Đang sử dụng" },
+    { value: "Sẵn sàng", label: "Sẵn sàng" }, 
+    { value: "Bảo trì", label: "Bảo trì" },
+    { value: "Hỏng hóc", label: "Hỏng hóc" },
+    { value: "Chờ thanh lý", label: "Chờ thanh lý" },
+    { value: "Đã thanh lý", label: "Đã thanh lý" }
+  ];
 
   const [form, setForm] = useState({
     tenTB: "",
-    maLoai: "",
+    maLoai: null, 
     maLo: null,
-    maPhong: "",
-    tinhTrang: "Đang sử dụng",
+    maPhong: null,
+    tinhTrang: null,
     giaTriBanDau: "",
     giaTriHienTai: "",
+    soSeri: "",             // <-- THÊM STATE: Số Seri
+    thongSoKyThuat: "",     // <-- THÊM STATE: Thông số kỹ thuật
   });
 
-  // ==================== 1. LOAD DANH MỤC (CHẠY 1 LẦN) ====================
+  // ==================== 1. LOAD DANH MỤC & CONVERT OPTIONS ====================
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
@@ -32,9 +45,14 @@ export default function EquipmentEditModal() {
           axiosInstance.get("/api/phong"),
         ]);
 
-        // Lưu dữ liệu vào state
-        setDsLoai(resLoai.data.result || resLoai.data || []);
-        setDsPhong(resPhong.data.result || resPhong.data || []);
+        // Convert API Loai -> { value: ma, label: ten }
+        const rawLoai = resLoai.data.result || resLoai.data || [];
+        setLoaiOptions(rawLoai.map(l => ({ value: l.maLoai, label: l.tenLoai })));
+
+        // Convert API Phong -> { value: ma, label: ten }
+        const rawPhong = resPhong.data.result || resPhong.data || [];
+        setPhongOptions(rawPhong.map(p => ({ value: p.maPhong, label: p.tenPhong })));
+
       } catch (err) {
         console.error("Lỗi tải danh mục:", err);
         toast.error("Không tải được danh mục");
@@ -59,10 +77,10 @@ export default function EquipmentEditModal() {
 
   // ==================== 3. FETCH DỮ LIỆU & FILL FORM ====================
   useEffect(() => {
-    if (isOpen && equipmentId && dsLoai.length > 0 && dsPhong.length > 0) {
+    if (isOpen && equipmentId && loaiOptions.length > 0 && phongOptions.length > 0) {
       loadDetailAndFill();
     }
-  }, [isOpen, equipmentId, dsLoai, dsPhong]);
+  }, [isOpen, equipmentId, loaiOptions, phongOptions]);
 
   const loadDetailAndFill = async () => {
     setLoading(true);
@@ -70,27 +88,29 @@ export default function EquipmentEditModal() {
       const res = await equipmentService.getById(equipmentId);
       const eq = res.data?.result || res.data || res;
 
-      // Tìm mã loại và mã phòng từ tên
-      let targetMaLoai = eq.maLoai || "";
+      // Logic tìm Mã nếu API chỉ trả về Tên (Fallback)
+      let targetMaLoai = eq.maLoai;
       if (!targetMaLoai && eq.loai) {
-        const found = dsLoai.find(l => l.tenLoai === eq.loai);
-        targetMaLoai = found?.maLoai || "";
+        const found = loaiOptions.find(l => l.label === eq.loai); // Tìm theo Label (Tên)
+        targetMaLoai = found?.value;
       }
 
-      let targetMaPhong = eq.maPhong || "";
+      let targetMaPhong = eq.maPhong;
       if (!targetMaPhong && eq.phong) {
-        const found = dsPhong.find(p => p.tenPhong === eq.phong);
-        targetMaPhong = found?.maPhong || "";
+        const found = phongOptions.find(p => p.label === eq.phong);
+        targetMaPhong = found?.value;
       }
 
       setForm({
         tenTB: eq.tenTB || "",
-        maLoai: targetMaLoai,
-        maLo: null,
-        maPhong: targetMaPhong,
+        maLoai: targetMaLoai || null,
+        maLo: eq.maLo || null,
+        maPhong: targetMaPhong || null,
         tinhTrang: eq.tinhTrang || "Đang sử dụng",
         giaTriBanDau: eq.giaTriBanDau || 0,
         giaTriHienTai: eq.giaTriHienTai || 0,
+        soSeri: eq.soSeri || "",               // <-- LẤY DỮ LIỆU SERIAL
+        thongSoKyThuat: eq.thongSoKyThuat || "", // <-- LẤY DỮ LIỆU THÔNG SỐ KT
       });
     } catch (err) {
       console.error("Lỗi fill form:", err);
@@ -109,25 +129,45 @@ export default function EquipmentEditModal() {
     setLoading(true);
     const payload = {
       ten_tb: form.tenTB.trim(),
-      ma_loai: form.maLoai,
-      ma_lo: form.maLo || null,
-      ma_phong: form.maPhong,
+      ma_loai: form.maLoai, 
+      ma_lo: form.maLo,
+      ma_phong: form.maPhong, 
       tinh_trang: form.tinhTrang,
       gia_tri_ban_dau: Number(form.giaTriBanDau),
       gia_tri_hien_tai: Number(form.giaTriHienTai),
+      so_seri: form.soSeri.trim(),                   // <-- GỬI SERIAL
+      thong_so_ky_thuat: form.thongSoKyThuat.trim(), // <-- GỬI THÔNG SỐ KỸ THUẬT
     };
 
     try {
       await equipmentService.update(equipmentId, payload);
       toast.success("Cập nhật thành công!");
       setIsOpen(false);
-      window.dispatchEvent(new Event("equipmentFilterChange"));
+      window.dispatchEvent(new Event("reloadEquipmentTable")); // <-- Đổi thành reloadEquipmentTable để đồng bộ
     } catch (err) {
       console.error("Lỗi update:", err);
       toast.error("Lỗi: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper tìm Object từ ID (Để hiển thị lên React-Select)
+  const getValueObj = (options, value) => {
+      return options.find(op => op.value === value) || null;
+  };
+
+  // Style giống Bootstrap
+  const customStyles = {
+    control: (base) => ({
+      ...base,
+      borderColor: "#dee2e6",
+      borderRadius: "0.375rem",
+      minHeight: "38px",
+      boxShadow: "none",
+      "&:hover": { borderColor: "#86b7fe" }
+    }),
+    menu: (base) => ({ ...base, zIndex: 1060 })
   };
 
   if (!isOpen) return null;
@@ -152,44 +192,77 @@ export default function EquipmentEditModal() {
               </div>
             ) : (
               <div className="row g-3">
+                
                 {/* Tên TB */}
                 <div className="col-md-8">
-                  <label className="form-label fw-bold">Tên thiết bị</label>
+                  <label className="form-label fw-bold">Tên thiết bị <span className="text-danger">*</span></label>
                   <input className="form-control" value={form.tenTB} onChange={e => setForm({...form, tenTB: e.target.value})} />
                 </div>
 
-                {/* Loại TB */}
+                {/* Loại TB (React-Select) */}
                 <div className="col-md-4">
-                  <label className="form-label fw-bold">Loại thiết bị</label>
-                  <select className="form-select" value={form.maLoai} onChange={e => setForm({...form, maLoai: e.target.value})}>
-                    <option value="">-- Chọn loại --</option>
-                    {dsLoai.map(item => (
-                      <option key={item.maLoai} value={item.maLoai}>{item.tenLoai}</option>
-                    ))}
-                  </select>
+                  <label className="form-label fw-bold">Loại thiết bị <span className="text-danger">*</span></label>
+                  <Select 
+                    options={loaiOptions}
+                    value={getValueObj(loaiOptions, form.maLoai)}
+                    onChange={(opt) => setForm({...form, maLoai: opt?.value})}
+                    placeholder="-- Chọn loại --"
+                    styles={customStyles}
+                    isDisabled={loading}
+                  />
                 </div>
 
-                {/* Phòng */}
+                {/* Số Seri (MỚI) */}
                 <div className="col-md-6">
-                  <label className="form-label fw-bold">Phòng / Vị trí</label>
-                  <select className="form-select" value={form.maPhong} onChange={e => setForm({...form, maPhong: e.target.value})}>
-                    <option value="">-- Chọn phòng --</option>
-                    {dsPhong.map(item => (
-                      <option key={item.maPhong} value={item.maPhong}>{item.tenPhong}</option>
-                    ))}
-                  </select>
+                    <label className="form-label fw-bold">Số Seri</label>
+                    <input 
+                        type="text" 
+                        className="form-control" 
+                        value={form.soSeri} 
+                        onChange={e => setForm({...form, soSeri: e.target.value})} 
+                        placeholder="Mã duy nhất từ NSX (nếu có)"
+                        disabled={loading}
+                    />
                 </div>
 
-                {/* Trạng thái */}
+                {/* Phòng (React-Select) */}
+                <div className="col-md-6">
+                  <label className="form-label fw-bold">Phòng / Vị trí <span className="text-danger">*</span></label>
+                  <Select 
+                    options={phongOptions}
+                    value={getValueObj(phongOptions, form.maPhong)}
+                    onChange={(opt) => setForm({...form, maPhong: opt?.value})}
+                    placeholder="-- Tìm phòng --"
+                    styles={customStyles}
+                    isDisabled={loading}
+                  />
+                </div>
+                
+                {/* Thông số kỹ thuật (MỚI) */}
+                <div className="col-12">
+                    <label className="form-label fw-bold">Thông số kỹ thuật/Mô tả</label>
+                    <textarea 
+                        className="form-control" 
+                        rows="2" 
+                        value={form.thongSoKyThuat} 
+                        onChange={e => setForm({...form, thongSoKyThuat: e.target.value})} 
+                        placeholder="VD: Core i7, RAM 16GB, Hãng Dell..."
+                        disabled={loading}
+                    />
+                </div>
+
+
+                {/* Trạng thái (React-Select) */}
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Trạng thái</label>
-                  <select className="form-select" value={form.tinhTrang} onChange={e => setForm({...form, tinhTrang: e.target.value})}>
-                    <option value="Đang sử dụng">Đang sử dụng</option>
-                    <option value="Bảo trì">Bảo trì</option>
-                    <option value="Hỏng hóc">Hỏng hóc</option>
-                    <option value="Chờ thanh lý">Chờ thanh lý</option>
-                    <option value="Đã thanh lý">Đã thanh lý</option>
-                  </select>
+                  <Select 
+                    options={trangThaiOptions}
+                    value={getValueObj(trangThaiOptions, form.tinhTrang)}
+                    onChange={(opt) => setForm({...form, tinhTrang: opt?.value})}
+                    placeholder="-- Trạng thái --"
+                    styles={customStyles}
+                    isDisabled={loading}
+                  />
                 </div>
 
                 {/* Giá trị */}
