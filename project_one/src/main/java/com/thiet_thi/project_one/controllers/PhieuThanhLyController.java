@@ -46,15 +46,6 @@ public class PhieuThanhLyController {
         return ResponseEntity.ok(PhieuThanhLyResponse.from(phieu));
     }
 
-//    // 4. Duyệt phiếu thanh lý (bonus – cực kỳ chuyên nghiệp)
-//    @PatchMapping("/{ma}/duyet")
-//    public ResponseEntity<PhieuThanhLyResponse> duyetPhieu(
-//            @PathVariable String ma,
-//            @RequestParam String maNguoiDuyet) throws DataNotFoundException {
-//        PhieuThanhLy phieu = phieuThanhLyService.duyetPhieu(ma, maNguoiDuyet);
-//        return ResponseEntity.ok(PhieuThanhLyResponse.from(phieu));
-//    }
-
     @PatchMapping("/{ma}/duyet")
     public ResponseEntity<PhieuThanhLyResponse> duyetPhieu(
             @PathVariable String ma,

@@ -41,8 +41,6 @@ const decodeTokenPayload = (token) => {
     }
 }
 
-// ==================== 2. HÀM LẤY ID VÀ ROLE TỪ TOKEN ====================
-
 // HÀM MỚI: Lấy mã người dùng (ID)
 export const getUserId = () => {
     const token = getToken();

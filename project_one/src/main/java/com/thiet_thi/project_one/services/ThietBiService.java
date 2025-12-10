@@ -8,8 +8,10 @@ import com.thiet_thi.project_one.repositorys.*;
 
 import com.thiet_thi.project_one.responses.ThietBiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -53,6 +55,8 @@ public class ThietBiService implements IThietBiService {
                 .giaTriBanDau(dto.getGiaTriBanDau())
                 .giaTriHienTai(dto.getGiaTriHienTai() != null ? dto.getGiaTriHienTai() : dto.getGiaTriBanDau())
                 .ngaySuDung(dto.getNgaySuDung() != null ? dto.getNgaySuDung() : LocalDate.now())
+                .soSeri(dto.getSoSeri())
+                .thongSoKyThuat(dto.getThongSoKyThuat())
                 .build();
 
         return thietBiRepository.save(tb);
@@ -103,8 +107,37 @@ public class ThietBiService implements IThietBiService {
 
 
     @Override
-    public List<ThietBi> getAll() {
-        return thietBiRepository.findAll();
+    public Page<ThietBiResponse> getAll(Pageable pageable) {
+        Page<ThietBi> thietBiPage = thietBiRepository.findAll(pageable);
+        return thietBiPage.map(ThietBiResponse::fromThietBi);
+    }
+    @Override
+    public List<ThietBiResponse> getAllAsList() {
+
+        List<ThietBi> thietBis = thietBiRepository.findAll();
+        return thietBis.stream()
+                .map(ThietBiResponse::fromThietBi)
+                .toList();
+    }
+
+    // Triển khai Tìm kiếm/Lọc Nâng cao
+    @Override
+    public Page<ThietBiResponse> searchAndFilter(
+            String search,
+            String maLoai,
+            String tinhTrang,
+            String maPhong,
+            Pageable pageable) {
+
+        Page<ThietBi> thietBiPage = thietBiRepository.findByCriteria(
+                search,
+                maLoai,
+                tinhTrang,
+                maPhong,
+                pageable
+        );
+
+        return thietBiPage.map(ThietBiResponse::fromThietBi);
     }
 
     @Override
@@ -139,6 +172,8 @@ public class ThietBiService implements IThietBiService {
         tb.setGiaTriBanDau(dto.getGiaTriBanDau());
         tb.setGiaTriHienTai(dto.getGiaTriHienTai());
         tb.setNgaySuDung(dto.getNgaySuDung());
+        tb.setSoSeri(dto.getSoSeri());
+        tb.setThongSoKyThuat(dto.getThongSoKyThuat());
 
         return thietBiRepository.save(tb);
     }

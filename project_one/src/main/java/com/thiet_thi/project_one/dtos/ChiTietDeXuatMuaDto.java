@@ -22,8 +22,14 @@ public class ChiTietDeXuatMuaDto {
     @JsonProperty("don_gia")
     private BigDecimal donGia;
 
+    @JsonProperty("ghi_chu")
+    private String ghiChu;
+
     @JsonProperty("thanh_tien")
     private BigDecimal thanhTien() {
         return donGia != null && soLuong != null ? donGia.multiply(BigDecimal.valueOf(soLuong)) : BigDecimal.ZERO;
     }
+    @JsonProperty("da_nhap")
+    private Integer daNhap;
+
 }

@@ -27,6 +27,8 @@ public class ThietBiResponse {
     private String tinhTrang;
     private BigDecimal giaTriBanDau;
     private BigDecimal giaTriHienTai;
+    private String soSeri;
+    private String thongSoKyThuat;
 
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate ngaySuDung;
@@ -66,6 +68,8 @@ public class ThietBiResponse {
                 .giaTriBanDau(tb.getGiaTriBanDau())
                 .giaTriHienTai(tb.getGiaTriHienTai())
                 .ngaySuDung(tb.getNgaySuDung())
+                .soSeri(tb.getSoSeri())
+                .thongSoKyThuat(tb.getThongSoKyThuat())
                 .build();
     }
 

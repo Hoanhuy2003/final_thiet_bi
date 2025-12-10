@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -118,10 +119,11 @@ public class NguoiDungService implements INguoiDungService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
-    public Page<NguoiDungResponse> getAllNguoiDung(Pageable pageable) {
-        return nguoiDungRepository.findAll(pageable)
-                .map(NguoiDungResponse::fromNguoiDung);
+    public List<NguoiDungResponse> getAllAsList() {
+        return nguoiDungRepository.findAll()
+                .stream()
+                .map(NguoiDungResponse::fromNguoiDung)
+                .toList();
     }
     @Override
     public NguoiDungResponse getMyInfo() {
@@ -132,5 +134,10 @@ public class NguoiDungService implements INguoiDungService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         return NguoiDungResponse.fromNguoiDung(nd);
+    }
+    @Override
+    public Page<NguoiDungResponse> searchAndFilter(String search, String vaiTro, String donVi, String trangThai, Pageable pageable) {
+        Page<NguoiDung> page = nguoiDungRepository.findByCriteria(search, vaiTro, donVi, trangThai, pageable);
+        return page.map(NguoiDungResponse::fromNguoiDung);
     }
 }

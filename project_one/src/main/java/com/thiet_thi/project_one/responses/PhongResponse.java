@@ -24,7 +24,7 @@ public class PhongResponse {
         return PhongResponse.builder()
                 .maPhong(phong.getMaPhong())
                 .tenPhong(phong.getTenPhong())
-                .maDonVi(phong.getDonVi().getTenDonVi())
+                .maDonVi(phong.getDonVi().getMaDonVi())
                 .thietBis(
                         phong.getThietBis() != null
                         ? phong.getThietBis().stream()

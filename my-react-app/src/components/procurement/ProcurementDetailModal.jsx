@@ -1,12 +1,10 @@
-import { useState, useEffect } from "react";
-import { Check, X, Calendar, DollarSign, Package, UserCircle } from "lucide-react"; 
+import { useState, useEffect, useRef } from "react";
+import { Check, X, Package, Download, RefreshCw } from "lucide-react"; 
 import { deXuatMuaService } from "../../services/deXuatMuaService";
 import { getUserRole, getUserId } from "../../services/authService"; 
 import toast from "react-hot-toast";
 
 export default function ProcurementDetailModal() {
-    // === 1. KHAI BÁO CÁC CONSTANT BÊN TRONG COMPONENT ===
-    // FIX: Đưa vào trong component để tránh ReferenceError
     const statusColors = {
         "CHO_DUYET": "bg-warning text-dark",
         "DA_DUYET": "bg-success text-white",
@@ -19,202 +17,267 @@ export default function ProcurementDetailModal() {
     const [isOpen, setIsOpen] = useState(false);
     const [request, setRequest] = useState(null);
     const [loading, setLoading] = useState(false); 
+    const [reloading, setReloading] = useState(false); // Loading riêng cho reload
     
-   
-    const currentUserId = getUserId(); 
+    // Dùng Ref để giữ giá trị maDeXuat mới nhất cho Event Listener
+    const currentRequestRef = useRef(null);
 
+    const currentUserId = getUserId(); 
     const role = getUserRole();
     const canApprove = ['ADMIN', 'HIEUTRUONG'].includes(role);
 
+    // --- HÀM TẢI LẠI CHI TIẾT ---
+    const loadDetail = async (maDeXuat) => {
+        if (!maDeXuat) return;
+        try {
+            setReloading(true);
+            const res = await deXuatMuaService.getById(maDeXuat);
+            const newData = res.data?.result || res.data || res;
+            
+            setRequest(newData);
+            currentRequestRef.current = newData; // Cập nhật Ref
+            
+        } catch (err) {
+            console.error("Lỗi reload chi tiết:", err);
+        } finally {
+            setReloading(false);
+        }
+    };
+
+    // 1. MỞ MODAL
     useEffect(() => {
-        // Lắng nghe sự kiện mở modal
         const handler = () => {
             const data = localStorage.getItem("selectedProcurement");
             if (data) {
-                setRequest(JSON.parse(data));
+                const parsed = JSON.parse(data);
+                setRequest(parsed);
+                currentRequestRef.current = parsed; // Lưu vào Ref
                 setIsOpen(true);
+                
+                // Gọi API lấy dữ liệu mới nhất
+                loadDetail(parsed.maDeXuat); 
             }
         };
         window.addEventListener("openDetailProcurementModal", handler);
         return () => window.removeEventListener("openDetailProcurementModal", handler);
     }, []);
 
-    // Hàm xử lý duyệt
-    const handleApprove = async () => {
-      console.log("--- DEBUG START ---");
-    console.log("Mã đề xuất:", request.maDeXuat);
-    console.log("ID người duyệt (currentUserId):", currentUserId); 
-    console.log("--- DEBUG END ---");
-        if (!currentUserId) { toast.error("Không tìm thấy ID người duyệt."); return; }
-        if (!window.confirm("Bạn chắc chắn muốn duyệt đề xuất này?")) return;
+    // 2. LẮNG NGHE SỰ KIỆN RELOAD (SỬA LẠI ĐỂ CHẮC CHẮN CHẠY)
+    useEffect(() => {
+        const reloadHandler = () => {
+            // Lấy mã từ Ref để đảm bảo không bị null hoặc cũ
+            const ma = currentRequestRef.current?.maDeXuat;
+            if (isOpen && ma) {
+                console.log("Đang tải lại dữ liệu cho đề xuất:", ma);
+                // Thêm delay 300ms để chờ Backend commit xong dữ liệu nhập kho
+                setTimeout(() => {
+                    loadDetail(ma);
+                }, 300);
+            }
+        };
+
+        // Lắng nghe cả 2 sự kiện
+        window.addEventListener("reloadBatchTable", reloadHandler); 
+        window.addEventListener("procurementFilterChange", reloadHandler);
+
+        return () => {
+            window.removeEventListener("reloadBatchTable", reloadHandler);
+            window.removeEventListener("procurementFilterChange", reloadHandler);
+        };
+    }, [isOpen]); // Chỉ phụ thuộc isOpen
+
+
+    // --- CÁC HÀM XỬ LÝ KHÁC ---
+    const handleOpenImport = (item) => {
+        const slDaNhap = item.da_nhap || 0; 
+        const slConThieu = item.soLuong - slDaNhap;
+
+        const importData = {
+            maCTDX: item.maCTDX,
+            tenLo: "Lô " + (item.tenLoaiThietBi || "Thiết bị"), 
+            soLuong: slConThieu > 0 ? slConThieu : 1, 
+            donGia: item.donGia,
+            maNhaCungCap: "",
+            ghiChu: item.ghiChu
+        };
         
-        setLoading(true);
-        try {
-            // Gọi API duyệt (Service trả về DeXuatMuaResponse đã update)
-            const res = await deXuatMuaService.approve(request.maDeXuat, currentUserId); 
-            
-            // Cập nhật state modal bằng dữ liệu mới trả về từ service
-            setRequest(res.data?.result || res.data || res); 
-            
-            toast.success("Đã duyệt đề xuất thành công!");
-            window.dispatchEvent(new Event("procurementFilterChange")); // Reload bảng
-        } catch (err) {
-            console.error(err);
-            toast.error("Lỗi khi duyệt: " + (err.response?.data?.message || err.message));
-        } finally {
-            setLoading(false);
-        }
+        localStorage.setItem("importBatchData", JSON.stringify(importData));
+        window.dispatchEvent(new Event("openImportBatchModal"));
     };
 
-    // Hàm xử lý từ chối
-    const handleReject = async () => {
-        if (!currentUserId) { toast.error("Không tìm thấy ID người duyệt."); return; }
-        if (!window.confirm("Bạn chắc chắn muốn từ chối?")) return;
-        
+    const handleApprove = async () => {
+        if (!currentUserId) { toast.error("Lỗi xác thực."); return; }
+        if (!window.confirm("Duyệt đề xuất này?")) return;
         setLoading(true);
         try {
-            const res = await deXuatMuaService.reject(request.maDeXuat, currentUserId); 
-            
-            // Cập nhật state modal bằng dữ liệu mới trả về từ service
-            setRequest(res.data?.result || res.data || res); 
-
-            toast.success("Đã từ chối đề xuất thành công!");
-            window.dispatchEvent(new Event("procurementFilterChange")); // Reload bảng
+            const res = await deXuatMuaService.approve(request.maDeXuat, currentUserId);
+            const newData = res.data?.result || res.data || res;
+            setRequest(newData); 
+            currentRequestRef.current = newData;
+            toast.success("Đã duyệt thành công!");
+            window.dispatchEvent(new Event("procurementFilterChange"));
         } catch (err) {
-            console.error(err);
-            toast.error("Lỗi khi từ chối: " + (err.response?.data?.message || err.message));
-        } finally {
-            setLoading(false);
-        }
+            toast.error("Lỗi: " + (err.response?.data?.message || err.message));
+        } finally { setLoading(false); }
+    };
+
+    const handleReject = async () => {
+        if (!currentUserId) { toast.error("Lỗi xác thực."); return; }
+        if (!window.confirm("Từ chối đề xuất này?")) return;
+        setLoading(true);
+        try {
+            const res = await deXuatMuaService.reject(request.maDeXuat, currentUserId);
+            const newData = res.data?.result || res.data || res;
+            setRequest(newData); 
+            currentRequestRef.current = newData;
+            toast.success("Đã từ chối!");
+            window.dispatchEvent(new Event("procurementFilterChange"));
+        } catch (err) {
+            toast.error("Lỗi: " + (err.response?.data?.message || err.message));
+        } finally { setLoading(false); }
     };
 
     const formatMoney = (val) => val ? val.toLocaleString("vi-VN") + "đ" : "0đ";
-    
     const formatDate = (dateVal) => {
         if (!dateVal) return "...";
-        // Xử lý cả kiểu mảng (Java LocalDate) và kiểu chuỗi
         if (Array.isArray(dateVal)) return `${dateVal[2]}/${dateVal[1]}/${dateVal[0]}`;
         return new Date(dateVal).toLocaleDateString("vi-VN");
     };
 
     if (!isOpen || !request) return null;
-
     const isPending = request.trangThai === "Chờ duyệt" || request.trangThai === "CHO_DUYET";
+    const isApproved = request.trangThai === "Đã duyệt" || request.trangThai === "DA_DUYET";
+    
+    const isProcuringOrComplete = [
+        "Đã duyệt", "DA_DUYET", 
+        "Đang mua sắm", "DANG_MUA_SAM", 
+        "Hoàn thành", "HOAN_THANH"
+    ].includes(request.trangThai);
 
     return (
         <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                <div className="modal-content">
+            <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div className="modal-content border-0 shadow-lg">
                     {/* Header */}
                     <div className="modal-header bg-primary text-white">
                         <h5 className="modal-title d-flex align-items-center gap-2">
                             <Package size={20} /> Chi tiết đề xuất: {request.maDeXuat}
+                            {reloading && <RefreshCw size={16} className="animate-spin ms-2" />}
                         </h5>
-                        <button type="button" className="btn-close btn-close-white" onClick={() => setIsOpen(false)} disabled={loading}></button>
+                        <button type="button" className="btn-close btn-close-white" onClick={() => setIsOpen(false)}></button>
                     </div>
                     
-                    <div className="modal-body">
+                    <div className="modal-body bg-light">
                         {/* Thông tin chung */}
-                        <div className="row g-3 mb-4">
-                            {/* ... (Các trường thông tin cơ bản) ... */}
-
-                            <div className="col-md-6">
-                                <label className="fw-bold text-muted small text-uppercase">Người đề xuất</label>
-                                <div className="fw-medium">{request.tenNguoiTao}</div>
-                            </div>
-
-                            <div className="col-md-6">
-                                <label className="fw-bold text-muted small text-uppercase">Ngày tạo</label>
-                                <div className="d-flex align-items-center gap-2">
-                                    <Calendar size={16} /> {formatDate(request.ngayTao)}
-                                </div>
-                            </div>
-
-                            <div className="col-md-6">
-                                <label className="fw-bold text-muted small text-uppercase">Tổng tiền dự kiến</label>
-                                <div className="fs-5 fw-bold text-success d-flex align-items-center gap-2">
-                                    <DollarSign size={20} /> {formatMoney(request.tongTien)}
-                                </div>
-                            </div>
-
-                            <div className="col-md-6">
-                                <label className="fw-bold text-muted small text-uppercase">Trạng thái</label>
-                                <div>
-                                    <span className={`badge ${statusColors[request.trangThai] || "bg-secondary"} fs-6`}>
-                                        {request.trangThai}
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            {/* THÔNG TIN NGƯỜI DUYỆT */}
-                            {request.maNguoiDuyet && (
-                                <>
-                                    <div className="col-md-6 border-top pt-3">
-                                        <label className="fw-bold text-muted small text-uppercase">Người phê duyệt</label>
-                                        <div className="d-flex align-items-center gap-2 fw-medium text-primary">
-                                            <UserCircle size={16} /> {request.tenNguoiDuyet} ({request.maNguoiDuyet})
-                                        </div>
+                        <div className="card border-0 shadow-sm mb-4">
+                            <div className="card-body">
+                                <div className="row g-3">
+                                    <div className="col-md-3">
+                                        <label className="fw-bold text-muted small text-uppercase">Người đề xuất</label>
+                                        <div className="fw-medium text-dark">{request.tenNguoiTao}</div>
                                     </div>
-                                    <div className="col-md-6 border-top pt-3">
-                                        <label className="fw-bold text-muted small text-uppercase">Ngày phê duyệt</label>
-                                        <div className="d-flex align-items-center gap-2 fw-medium">
-                                            <Calendar size={16} /> {formatDate(request.ngayDuyet)}
-                                        </div>
+                                    <div className="col-md-3">
+                                        <label className="fw-bold text-muted small text-uppercase">Ngày tạo</label>
+                                        <div className="fw-medium text-dark">{formatDate(request.ngayTao)}</div>
                                     </div>
-                                </>
-                            )}
+                                    <div className="col-md-3">
+                                        <label className="fw-bold text-muted small text-uppercase">Tổng tiền</label>
+                                        <div className="text-success fw-bold fs-5">{formatMoney(request.tongTien)}</div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <label className="fw-bold text-muted small text-uppercase">Trạng thái</label>
+                                        <div><span className={`badge ${statusColors[request.trangThai]}`}>{request.trangThai}</span></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Danh sách chi tiết (Table con) */}
-                        <h6 className="border-bottom pb-2 mb-3 fw-bold text-primary">Danh sách thiết bị cần mua</h6>
-                        <div className="table-responsive border rounded">
-                            <table className="table table-sm table-striped mb-0">
-                                <thead className="table-light">
-                                    <tr>
-                                        <th>Tên loại</th>
-                                        <th className="text-center">Số lượng</th>
-                                        <th className="text-end">Đơn giá</th>
-                                        <th className="text-end">Thành tiền</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {request.chiTiet?.length > 0 ? (
-                                        request.chiTiet.map((item, idx) => (
-                                            <tr key={idx}>
-                                                <td>{item.tenLoaiThietBi}</td>
-                                                <td className="text-center fw-bold">{item.soLuong}</td>
-                                                <td className="text-end">{formatMoney(item.donGia)}</td>
-                                                <td className="text-end fw-bold">{formatMoney(item.thanhTien)}</td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr><td colSpan="4" className="text-center py-3 text-muted">Không có chi tiết</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                        {/* DANH SÁCH CHI TIẾT */}
+                        <div className="card border-0 shadow-sm">
+                            <div className="card-header bg-white py-3 d-flex justify-content-between">
+                                <h6 className="mb-0 fw-bold text-primary">Danh sách thiết bị cần mua</h6>
+                                {reloading && <small className="text-muted fst-italic">Đang cập nhật...</small>}
+                            </div>
+                            <div className="table-responsive">
+                                <table className="table table-hover align-middle mb-0">
+                                    <thead className="table-light">
+                                        <tr>
+                                            <th className="ps-3">Tên loại thiết bị</th>
+                                            <th className="text-center">Số lượng</th>
+                                            <th className="text-end">Đơn giá dự kiến</th>
+                                            <th className="text-end">Thành tiền</th>
+                                            <th className="text-center" style={{width: '140px'}}>Tác vụ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {request.chiTiet?.length > 0 ? (
+                                            request.chiTiet.map((item, idx) => {
+                                                const slCanMua = item.soLuong || 0;
+                                                const slDaNhap = item.da_nhap || 0; 
+                                                const isCompleted = slDaNhap >= slCanMua;
 
+                                                return (
+                                                    <tr key={idx}>
+                                                        <td className="ps-3">
+                                                            <span className="fw-medium text-dark">{item.tenLoaiThietBi}</span>
+                                                            {item.ghiChu && <div className="small text-muted fst-italic">{item.ghiChu}</div>}
+                                                        </td>
+                                                        
+                                                        <td className="text-center">
+                                                            <span className="fw-bold fs-6">{slCanMua}</span>
+                                                            {slDaNhap > 0 && (
+                                                                <div className={`small fw-bold mt-1 ${isCompleted ? 'text-success' : 'text-warning'}`}>
+                                                                    Đã về: {slDaNhap}/{slCanMua}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        
+                                                        <td className="text-end">{formatMoney(item.donGia)}</td>
+                                                        <td className="text-end fw-bold text-success">{formatMoney(item.thanhTien)}</td>
+                                                        
+                                                        {/* CỘT TÁC VỤ */}
+                                                        <td className="text-center">
+                                                            {isProcuringOrComplete && !isCompleted ? (
+                                                                <button 
+                                                                    className={`btn btn-sm ${slDaNhap > 0 ? 'btn-warning text-dark' : 'btn-primary'} d-flex align-items-center justify-content-center w-100 fw-medium shadow-sm`}
+                                                                    onClick={() => handleOpenImport(item)}
+                                                                    title={`Còn thiếu ${slCanMua - slDaNhap} chiếc`}
+                                                                >
+                                                                    <Download size={14} className="me-1"/> 
+                                                                    {slDaNhap > 0 ? "Nhập tiếp" : "Nhập kho"}
+                                                                </button>
+                                                            ) : isCompleted ? (
+                                                                <span className="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1">
+                                                                    <Check size={14} className="me-1"/> Đủ hàng
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-muted small">-</span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr><td colSpan="5" className="text-center py-4 text-muted">Không có dữ liệu chi tiết</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="modal-footer bg-light">
-                        <button className="btn btn-secondary" onClick={() => setIsOpen(false)} disabled={loading}>Đóng</button>
+                        <button className="btn btn-secondary px-4" onClick={() => setIsOpen(false)}>Đóng</button>
                         
-                        {/* Chỉ hiện nút duyệt nếu trạng thái là CHO_DUYET và user có quyền */}
                         {isPending && canApprove && (
                             <>
-                                <button className="btn btn-outline-danger d-flex align-items-center gap-2" onClick={handleReject} disabled={loading}>
-                                    <X size={18} /> Từ chối
+                                <button className="btn btn-danger px-3 d-flex align-items-center gap-2" onClick={handleReject}>
+                                    <X size={18}/> Từ chối
                                 </button>
-                                <button className="btn btn-success d-flex align-items-center gap-2" onClick={handleApprove} disabled={loading}>
-                                    {loading ? <span className="spinner-border spinner-border-sm"></span> : <Check size={18} />}
-                                    Phê duyệt
+                                <button className="btn btn-success px-3 d-flex align-items-center gap-2" onClick={handleApprove}>
+                                    <Check size={18}/> Phê duyệt
                                 </button>
                             </>
-                        )}
-                        
-                        {/* Hiển thị thông báo nếu đã duyệt */}
-                        {request.maNguoiDuyet && !isPending && (
-                            <span className="text-success small fw-bold">Phiếu đã được xử lý.</span>
                         )}
                     </div>
                 </div>

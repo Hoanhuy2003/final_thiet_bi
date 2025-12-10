@@ -1,58 +1,76 @@
 package com.thiet_thi.project_one.controllers;
 
+import com.thiet_thi.project_one.dtos.LoTBStatDto;
 import com.thiet_thi.project_one.dtos.LoThietBiDto;
-import com.thiet_thi.project_one.exceptions.DataNotFoundException;
 import com.thiet_thi.project_one.iservices.ILoThietBiService;
 import com.thiet_thi.project_one.models.LoThietBi;
+import com.thiet_thi.project_one.dtos.ApiResponse; // 👇 Dùng class này để gói dữ liệu
 import com.thiet_thi.project_one.responses.LoThietBiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// src/main/java/com/thiet_thi/project_one/controllers/LoThietBiController.java
 @RestController
 @RequestMapping("/api/lo_thiet_bi")
 @RequiredArgsConstructor
-@CrossOrigin("*")
+@CrossOrigin("*") // Cho phép Frontend gọi API
 public class LoThietBiController {
+
 
     private final ILoThietBiService loThietBiService;
 
     // 1. Nhập lô thủ công
     @PostMapping
-    public ResponseEntity<LoThietBiResponse> create(@Valid @RequestBody LoThietBiDto dto)
-            throws DataNotFoundException {
+    public ApiResponse<LoThietBiResponse> create(@Valid @RequestBody LoThietBiDto dto) {
+        // Không cần try-catch, lỗi sẽ tự bay về GlobalExceptionHandler
         LoThietBi lo = loThietBiService.create(dto);
-        return ResponseEntity.ok(LoThietBiResponse.from(lo));
+
+        // Trả về dạng chuẩn ApiResponse
+        return ApiResponse.<LoThietBiResponse>builder()
+                .result(LoThietBiResponse.from(lo))
+                .build();
     }
 
     // 2. Lấy tất cả lô
     @GetMapping
-    public ResponseEntity<List<LoThietBiResponse>> getAll() {
-        return ResponseEntity.ok(
-                loThietBiService.getAll().stream()
-                        .map(LoThietBiResponse::from)
-                        .toList()
-        );
+    public ApiResponse<List<LoThietBiResponse>> getAll() {
+        List<LoThietBiResponse> list = loThietBiService.getAll().stream()
+                .map(LoThietBiResponse::from)
+                .toList();
+
+        return ApiResponse.<List<LoThietBiResponse>>builder()
+                .result(list)
+                .build();
     }
 
     // 3. Lấy 1 lô
     @GetMapping("/{ma}")
-    public ResponseEntity<LoThietBiResponse> getByMa(@PathVariable String ma) throws DataNotFoundException {
-        return ResponseEntity.ok(LoThietBiResponse.from(loThietBiService.getByMa(ma)));
+    public ApiResponse<LoThietBiResponse> getByMa(@PathVariable String ma) {
+        return ApiResponse.<LoThietBiResponse>builder()
+                .result(LoThietBiResponse.from(loThietBiService.getByMa(ma)))
+                .build();
     }
 
-    // 4. BONUS: Nhập kho tự động từ đề xuất đã duyệt (thầy cô mê lắm!)
+    // 4. Nhập kho tự động từ đề xuất
     @PostMapping("/nhap-kho/{maDeXuat}")
-    public ResponseEntity<List<LoThietBiResponse>> nhapKhoTuDeXuat(@PathVariable String maDeXuat)
-            throws DataNotFoundException {
-        return ResponseEntity.ok(
-                loThietBiService.nhapKhoTuDeXuat(maDeXuat).stream()
-                        .map(LoThietBiResponse::from)
-                        .toList()
-        );
+    public ApiResponse<List<LoThietBiResponse>> nhapKhoTuDeXuat(@PathVariable String maDeXuat) {
+        List<LoThietBiResponse> list = loThietBiService.nhapKhoTuDeXuat(maDeXuat).stream()
+                .map(LoThietBiResponse::from)
+                .toList();
+
+        return ApiResponse.<List<LoThietBiResponse>>builder()
+                .result(list)
+                .build();
+    }
+
+    // 5. Thống kê (Nên chuyển logic này vào Service)
+    @GetMapping("/stats")
+    public ApiResponse<LoTBStatDto> getStats() {
+
+        return ApiResponse.<LoTBStatDto>builder()
+                 .result(loThietBiService.getStatistics())
+                .build();
     }
 }

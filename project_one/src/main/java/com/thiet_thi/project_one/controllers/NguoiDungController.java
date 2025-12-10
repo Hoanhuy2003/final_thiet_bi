@@ -9,7 +9,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/nguoi_dung")
@@ -50,20 +53,40 @@ public class NguoiDungController {
                 .build();
     }
 
-    @GetMapping
-    public ApiResponse<Page<NguoiDungResponse>> getAllNguoiDung(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        Pageable pageable = PageRequest.of(page, size);
-        return ApiResponse.<Page<NguoiDungResponse>>builder()
-                .result(nguoiDungService.getAllNguoiDung(pageable))
+    @GetMapping("/list")
+    public ApiResponse<List<NguoiDungResponse>> getAllAsList() {
+        return ApiResponse.<List<NguoiDungResponse>>builder()
+                .result(nguoiDungService.getAllAsList())
                 .build();
     }
     @GetMapping("/myInfo")
     ApiResponse<NguoiDungResponse> getMyInfo() {
         return ApiResponse.<NguoiDungResponse>builder()
                 .result(nguoiDungService.getMyInfo())
+                .build();
+    }
+    @GetMapping
+    public ApiResponse<Page<NguoiDungResponse>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "tenND") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection,
+
+            // Tham số lọc
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String vaiTro,
+            @RequestParam(required = false) String donVi,
+            @RequestParam(required = false) String trangThai
+    ) {
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection),sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<NguoiDungResponse> resultPage;
+
+        resultPage = nguoiDungService.searchAndFilter(search, vaiTro, donVi, trangThai, pageable);
+
+        return ApiResponse.<Page<NguoiDungResponse>>builder()
+                .result(resultPage)
                 .build();
     }
 }

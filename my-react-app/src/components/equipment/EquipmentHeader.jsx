@@ -18,7 +18,7 @@ export default function EquipmentHeader() {
   return (
     <div className="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
       <div>
-        <h3 className="mb-1 fw-bold text-primary">Quản lý thiết bị</h3>
+        <h3 className="mb-1 fw-bold ">Quản lý thiết bị</h3>
         <p className="text-muted mb-0">Danh sách toàn bộ trang thiết bị trong hệ thống</p>
       </div>
       

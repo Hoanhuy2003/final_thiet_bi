@@ -44,6 +44,10 @@ public class DeXuatMua {
     @Column(name = "ngay_duyet")
     private LocalDate ngayDuyet;
 
+    @ManyToOne
+    @JoinColumn(name = "ma_phong")
+    private Phong phong;
+
     @OneToMany(mappedBy = "deXuatMua", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<ChiTietDeXuatMua> chiTietDeXuat = new HashSet<>();
