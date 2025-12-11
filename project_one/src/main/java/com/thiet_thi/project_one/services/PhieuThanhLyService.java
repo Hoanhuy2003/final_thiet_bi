@@ -23,6 +23,23 @@ public class PhieuThanhLyService implements IThanhLyService {
     private final NguoiDungRepository nguoiDungRepository;
     private final ThietBiRepository thietBiRepository;
     private final ChiTietPhieuThanhLyRepository chiTietRepository;
+    private final LichSuThietBiRepository lichSuThietBiRepository;
+
+    private void ghiLichSuThietBi(ThietBi tb, String tinhTrangTBCu, String tinhTrangTBMoi, NguoiDung nguoiThucHien) {
+        LichSuThietBi lichSu = LichSuThietBi.builder()
+                .maLichSu("LS" + System.currentTimeMillis())
+                .thietBi(tb)
+                .trangThaiCu(tinhTrangTBCu)
+                .trangThaiMoi(tinhTrangTBMoi)
+//                .phongCu(tb.getPhong() != null ? tb.getPhong().getTenPhong() : null)
+//                .phongMoi(tb.getPhong() != null ? tb.getPhong().getTenPhong() : null)
+//                .loaiCu(tb.getLoaiThietBi() != null ? tb.getLoaiThietBi().getTenLoai() : null)
+//                .loaiMoi(tb.getLoaiThietBi() != null ? tb.getLoaiThietBi().getTenLoai() : null)
+                .ngayThayDoi(LocalDate.now())
+                .nguoiThayDoi(nguoiThucHien)
+                .build();
+        lichSuThietBiRepository.save(lichSu);
+    }
 
     // src/main/java/com/thiet_thi/project_one/services/impl/PhieuThanhLyService.java
     @Override
@@ -74,6 +91,8 @@ public class PhieuThanhLyService implements IThanhLyService {
             ThietBi tb = thietBiRepository.findById(ctDto.getMaTB())
                     .orElseThrow(() -> new DataNotFoundException("Không tìm thấy thiết bị: " + ctDto.getMaTB()));
 
+            String tinhTrangTBCu = tb.getTinhTrang();
+            ghiLichSuThietBi(tb, tinhTrangTBCu, "Chờ thanh lý", nguoiLap);
             // TỰ SINH maCTTL – BẮT BUỘC!
             String maCTTL = generateMaChiTiet(phieu.getMaPhieuThanhLy(), phieu.getChiTiet().size() + 1);
 
@@ -90,6 +109,7 @@ public class PhieuThanhLyService implements IThanhLyService {
                     .ngayThanhLy(ctDto.getNgayThanhLy())
                     .ghiChu(ctDto.getGhiChu())
                     .trangThai("Chờ duyệt")  // THÊM DÒNG NÀY – BẮT BUỘC!
+                    .tinhTrangTBCu(tinhTrangTBCu)
                     .build();
 
             phieu.getChiTiet().add(chiTiet);
@@ -97,7 +117,7 @@ public class PhieuThanhLyService implements IThanhLyService {
 
             // Cập nhật trạng thái thiết bị
             System.out.println("Cập nhật trạng thái thiết bị " + tb.getMaTB() + " → Đã thanh lý");
-            tb.setTinhTrang("Đã thanh lý");
+            tb.setTinhTrang("Chờ thanh lý");
             thietBiRepository.save(tb);
         }
 
@@ -258,12 +278,15 @@ public class PhieuThanhLyService implements IThanhLyService {
         // Cập nhật trạng thái tất cả thiết bị trong phiếu thành "Đã thanh lý"
         for (ChiTietPhieuThanhLy ct : phieu.getChiTiet()) {
             ThietBi tb = ct.getThietBi();
+            String tinhTrangTBCu = tb.getTinhTrang();
+
             tb.setTinhTrang("Đã thanh lý");
             thietBiRepository.save(tb);
             ct.setTrangThai("Đã duyệt");           // TRẠNG THÁI CHI TIẾT = DUYỆT
             ct.setNguoiDuyet(nguoiDuyet);       // NGƯỜI DUYỆT
             ct.setNgayThanhLy(LocalDate.now()); // NGÀY THANH LÝ
             chiTietRepository.save(ct);
+            ghiLichSuThietBi(tb, tinhTrangTBCu, "Đã thanh lý", nguoiDuyet);
         }
 
 
@@ -293,13 +316,17 @@ public class PhieuThanhLyService implements IThanhLyService {
         // KHÔI PHỤC trạng thái thiết bị về "Đang sử dụng" (hoặc trạng thái cũ nếu bạn lưu)
         for (ChiTietPhieuThanhLy ct : phieu.getChiTiet()) {
             ThietBi tb = ct.getThietBi();
+            String tinhTrangTBCu = tb.getTinhTrang();
+            String tinhTrangTBMoi = ct.getTinhTrangTBCu();
+
             // Nếu bạn có lưu trạng thái cũ → dùng nó, còn không thì mặc định "Đang sử dụng"
-            tb.setTinhTrang("Đang sử dụng");
+            tb.setTinhTrang(tinhTrangTBMoi);
             thietBiRepository.save(tb);
             ct.setTrangThai("Từ chối");         // TRẠNG THÁI CHI TIẾT = TỪ CHỐI
             ct.setNguoiDuyet(nguoiDuyet);            // NGƯỜI DUYỆT
             ct.setNgayThanhLy(LocalDate.now()); // GHI NHẬN NGÀY TỪ CHỐI
             chiTietRepository.save(ct);
+            ghiLichSuThietBi(tb, tinhTrangTBCu, tinhTrangTBMoi, nguoiDuyet);
         }
 
         return phieuThanhLyRepository.save(phieu);

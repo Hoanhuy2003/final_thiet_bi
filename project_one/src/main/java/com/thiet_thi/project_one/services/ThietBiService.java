@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class ThietBiService implements IThietBiService {
     private final LoaiThietBiRepository loaiThietBiRepository;
     private final PhongRepository phongRepository;
     private final LichSuThietBiRepository lichSuThietBiRepository;
+    private final  NguoiDungRepository nguoiDungRepository;
 
     @Override
     public ThietBi createThietBi(ThietBiDto dto) {
@@ -146,6 +148,10 @@ public class ThietBiService implements IThietBiService {
         ThietBi tb = thietBiRepository.findById(maThietBi)
                 .orElseThrow(() -> new DataNotFoundException("Không tìm thấy thiết bị với mã: " + maThietBi));
 
+        // Lưu giá trị cũ
+        String phongCu = tb.getPhong() != null ? tb.getPhong().getTenPhong() : null;
+        String loaiCu = tb.getLoaiThietBi() != null ? tb.getLoaiThietBi().getTenLoai() : null;
+        String tinhTrangCu = tb.getTinhTrang();
 
         LoaiThietBi loai = loaiThietBiRepository.findById(dto.getMaLoai())
                 .orElseThrow(() -> new DataNotFoundException("Không tìm thấy loại thiết bị"));
@@ -175,7 +181,72 @@ public class ThietBiService implements IThietBiService {
         tb.setSoSeri(dto.getSoSeri());
         tb.setThongSoKyThuat(dto.getThongSoKyThuat());
 
+        String phongMoi = phong != null ? phong.getTenPhong() : null;
+        String loaiMoi = loai != null ? loai.getTenLoai() : null;
+        String tinhTrangMoi = dto.getTinhTrang();
+
+        // === GHI LỊCH SỬ NẾU CÓ THAY ĐỔI ===
+        boolean coThayDoi = false;
+        StringBuilder moTa = new StringBuilder();
+
+        if (!Objects.equals(phongCu, phongMoi)) {
+            coThayDoi = true;
+            moTa.append("Chuyển phòng: ").append(phongCu == null ? "Chưa có" : phongCu)
+                    .append(" → ").append(phongMoi == null ? "Chưa có" : phongMoi).append(". ");
+        }
+        if (!Objects.equals(loaiCu, loaiMoi)) {
+            coThayDoi = true;
+            moTa.append("Đổi loại: ").append(loaiCu == null ? "Chưa có" : loaiCu)
+                    .append(" → ").append(loaiMoi == null ? "Chưa có" : loaiMoi).append(". ");
+        }
+        if (!Objects.equals(tinhTrangCu, tinhTrangMoi)) {
+            coThayDoi = true;
+            moTa.append("Trạng thái: ").append(tinhTrangCu).append(" → ").append(tinhTrangMoi).append(". ");
+        }
+
+        if (coThayDoi) {
+            if (!Objects.equals(phongCu, phongMoi)) {
+                LichSuThietBi lichSu = LichSuThietBi.builder()
+                        .maLichSu("LS" + System.currentTimeMillis())
+                        .thietBi(tb)
+//                        .trangThaiCu(tinhTrangCu)
+//                        .trangThaiMoi(tinhTrangMoi)
+                        .phongCu(phongCu)
+                        .phongMoi(phongMoi)
+//                        .loaiCu(loaiCu)
+//                        .loaiMoi(loaiMoi)
+                        .ngayThayDoi(LocalDate.now())
+                        .nguoiThayDoi(getCurrentUser())
+                        .build();
+                lichSuThietBiRepository.save(lichSu);
+            }
+            else if (!Objects.equals(tinhTrangCu, tinhTrangMoi)) {
+                LichSuThietBi lichSu = LichSuThietBi.builder()
+                        .maLichSu("LS" + System.currentTimeMillis())
+                        .thietBi(tb)
+                        .trangThaiCu(tinhTrangCu)
+                        .trangThaiMoi(tinhTrangMoi)
+//                        .phongCu(phongCu)
+//                        .phongMoi(phongMoi)
+//                        .loaiCu(loaiCu)
+//                        .loaiMoi(loaiMoi)
+                        .ngayThayDoi(LocalDate.now())
+                        .nguoiThayDoi(getCurrentUser())
+                        .build();
+                lichSuThietBiRepository.save(lichSu);
+            }
+
+        }
+
+
         return thietBiRepository.save(tb);
+    }
+
+    public NguoiDung getCurrentUser() {
+        // Giả sử bạn lấy từ SecurityContext hoặc token
+        String maND = "ND001";
+        return nguoiDungRepository.findByMaND(maND)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
     }
 
 
