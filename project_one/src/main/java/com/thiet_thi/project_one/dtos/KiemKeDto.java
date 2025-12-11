@@ -9,36 +9,23 @@ import java.util.List;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class KiemKeDto {
 
-    @JsonProperty("ma_kiem_ke")
+    // --- CÁC TRƯỜNG XÁC THỰC VÀ ĐỊNH DANH ---
+
+    @JsonProperty("ma_kiem_ke") // ID của Phiếu kiểm kê đang được cập nhật
     private String maKiemKe;
 
-    @JsonProperty("ma_nd")
-    private String maND;
+    @JsonProperty("ma_phong") // BẮT BUỘC: ID phòng đang kiểm kê
+    private String maPhong;
 
-    @JsonProperty("ten_nguoi_kiem_ke")
-    private String tenNguoiKiemKe;
+    @JsonProperty("ma_nguoi_kiem_ke") // Người thực hiện
+    private String maNguoiKiemKe;
 
+    @JsonProperty("ghi_chu") // Ghi chú chung
+    private String ghiChu;
     @JsonProperty("ngay_kiem_ke")
     private LocalDate ngayKiemKe;
 
-    @JsonProperty("ghi_chu")
-    private String ghiChu;
-
-    @JsonProperty("tong_so_theo_so_sach")
-    private Integer tongSoTheoSoSach;        // Tổng số thiết bị theo hệ thống (trước kiểm kê)
-
-    @JsonProperty("tong_so_thuc_te")
-    private Integer tongSoThucTe;            // Tổng số thiết bị thực tế phát hiện (tồn + hỏng + mất)
-
-    @JsonProperty("ton_tai")
-    private Integer tonTai;                  // Có mặt, còn dùng được
-
-    @JsonProperty("hong")
-    private Integer hong;                    // Có mặt nhưng hỏng, không dùng được
-
-    @JsonProperty("mat")
-    private Integer mat;
-
     @JsonProperty("chi_tiet")
     private List<ChiTietKiemKeDto> chiTiet = new ArrayList<>();
+
 }

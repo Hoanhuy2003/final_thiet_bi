@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Eye, Edit, Trash2, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { equipmentService } from "../../services/equipmentService";
 import toast from "react-hot-toast";
 
@@ -10,10 +10,23 @@ const statusColors = {
   "Hỏng hóc": "bg-danger text-white",
   "Chờ thanh lý": "bg-secondary text-white",
   "Đã thanh lý": "bg-dark text-white",
+  "Hết khấu hao": "bg-info text-white", // Màu hiển thị cho trạng thái Khấu hao
 };
 
 const PAGE_SIZE = 10;
-const MAX_VISIBLE_PAGES = 5; // Số nút trang tối đa hiển thị
+const MAX_VISIBLE_PAGES = 5;
+
+// Helper: Format tiền tệ VND
+const formatCurrency = (value) => {
+    if (value === null || value === undefined) return "0 đ";
+    // Sử dụng Intl.NumberFormat cho số lớn, thêm "đ"
+    return new Intl.NumberFormat('vi-VN', { 
+        style: 'currency', 
+        currency: 'VND',
+        minimumFractionDigits: 0 
+    }).format(value);
+};
+
 
 export default function EquipmentTable() {
   const [list, setList] = useState([]);
@@ -57,7 +70,7 @@ export default function EquipmentTable() {
         setList(apiResult.content);
         setTotalPages(newTotalPages);
         setTotalElements(apiResult.totalElements || 0);
-        
+        
         // FIX LỖI 1: Tự động lùi trang nếu xóa item cuối cùng
         if (apiResult.content.length === 0 && page > 0 && newTotalPages > 0) {
             setCurrentPage(newTotalPages - 1);
@@ -94,7 +107,7 @@ export default function EquipmentTable() {
         const isFilterChanged = JSON.stringify(newFilter) !== JSON.stringify(filter);
         
         setFilter(newFilter);
-        
+        
         if (isFilterChanged || currentPage !== 0) {
             setCurrentPage(0);
         } else if (!isFilterChanged && currentPage === 0) {
@@ -152,98 +165,97 @@ export default function EquipmentTable() {
     localStorage.setItem("selectedEquipment", JSON.stringify(eq));
     window.dispatchEvent(new Event("openDisposalModal"));
   };
-    
-   const PaginationButtons = () => {
-    if (totalPages <= 1) return null;
+    
+  const PaginationButtons = () => {
+    if (totalPages <= 1) return null;
 
-    const maxPages = MAX_VISIBLE_PAGES; // ví dụ 5
+    const maxPages = MAX_VISIBLE_PAGES;
 
-    // Tính dải trang hiển thị
-    let startPage = Math.max(0, currentPage - Math.floor(maxPages / 2));
-    let endPage = startPage + maxPages - 1;
+    let startPage = Math.max(0, currentPage - Math.floor(maxPages / 2));
+    let endPage = startPage + maxPages - 1;
 
-    if (endPage >= totalPages) {
-        endPage = totalPages - 1;
-        startPage = Math.max(0, endPage - maxPages + 1);
-    }
+    if (endPage >= totalPages) {
+        endPage = totalPages - 1;
+        startPage = Math.max(0, endPage - maxPages + 1);
+    }
 
-    const pages = [];
-    for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-    }
+    const pages = [];
+    for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+    }
 
-    return (
-        <div className="d-flex gap-1 mx-2">
+    return (
+        <div className="d-flex gap-1 mx-2">
 
-            {/* Previous */}
-            <button
-                className="btn btn-sm btn-outline-secondary"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 0 || loading}
-            >
-                <ChevronLeft size={16} />
-            </button>
+            {/* Previous */}
+            <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 0 || loading}
+            >
+                <ChevronLeft size={16} />
+            </button>
 
-            {/* Trang đầu + ... */}
-            {startPage > 0 && (
-                <>
-                    <button
-                        className="btn btn-sm btn-outline-secondary"
-                        onClick={() => goToPage(0)}
-                        disabled={loading}
-                    >
-                        1
-                    </button>
-                    {startPage > 1 && (
-                        <span className="btn btn-sm btn-link text-muted disabled">
-                            ...
-                        </span>
-                    )}
-                </>
-            )}
+            {/* Trang đầu + ... */}
+            {startPage > 0 && (
+                <>
+                    <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => goToPage(0)}
+                        disabled={loading}
+                    >
+                        1
+                    </button>
+                    {startPage > 1 && (
+                        <span className="btn btn-sm btn-link text-muted disabled">
+                            ...
+                        </span>
+                    )}
+                </>
+            )}
 
-            {/* Các trang trong phạm vi hiển thị */}
-            {pages.map((page) => (
-                <button
-                    key={page}
-                    className={`btn btn-sm ${
-                        page === currentPage ? "btn-primary" : "btn-outline-secondary"
-                    }`}
-                    onClick={() => goToPage(page)}
-                    disabled={loading}
-                >
-                    {page + 1}
-                </button>
-            ))}
+            {/* Các trang trong phạm vi hiển thị */}
+            {pages.map((page) => (
+                <button
+                    key={page}
+                    className={`btn btn-sm ${
+                        page === currentPage ? "btn-primary" : "btn-outline-secondary"
+                    }`}
+                    onClick={() => goToPage(page)}
+                    disabled={loading}
+                >
+                    {page + 1}
+                </button>
+            ))}
 
-            {/* ... + trang cuối */}
-            {endPage < totalPages - 1 && (
-                <>
-                    {endPage < totalPages - 2 && (
-                        <span className="btn btn-sm btn-link text-muted disabled">
-                            ...
-                        </span>
-                    )}
-                    <button
-                        className="btn btn-sm btn-outline-secondary"
-                        onClick={() => goToPage(totalPages - 1)}
-                        disabled={loading}
-                    >
-                        {totalPages}
-                    </button>
-                </>
-            )}
+            {/* ... + trang cuối */}
+            {endPage < totalPages - 1 && (
+                <>
+                    {endPage < totalPages - 2 && (
+                        <span className="btn btn-sm btn-link text-muted disabled">
+                            ...
+                        </span>
+                    )}
+                    <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => goToPage(totalPages - 1)}
+                        disabled={loading}
+                    >
+                        {totalPages}
+                    </button>
+                </>
+            )}
 
-            {/* Next */}
-            <button
-                className="btn btn-sm btn-outline-secondary"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages - 1 || loading}
-            >
-                <ChevronRight size={16} />
-            </button>
-        </div>
-    );
+            {/* Next */}
+            <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages - 1 || loading}
+            >
+                <ChevronRight size={16} />
+            </button>
+        </div>
+    );
 };
 
 
@@ -252,8 +264,7 @@ export default function EquipmentTable() {
   // ===========================
   return (
     <div className="card shadow-sm border-0">
-      {/* ... (card-header và card-body giữ nguyên) ... */}
-        
+        
       <div className="card-header bg-white py-3">
         <div className="d-flex justify-content-between align-items-center">
           <h5 className="mb-0 fw-bold text-primary">Danh sách thiết bị</h5>
@@ -284,7 +295,7 @@ export default function EquipmentTable() {
             <tbody>
               {list.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="text-center py-5 text-muted">
+                  <td colSpan="11" className="text-center py-5 text-muted">
                     Không tìm thấy thiết bị phù hợp với bộ lọc.
                   </td>
                 </tr>
@@ -311,15 +322,25 @@ export default function EquipmentTable() {
                         {eq.thongSoKyThuat || "N/A"}
                       </div>
                     </td>
+                    
+                    {/* CỘT LOẠI (FIXED: Dùng string từ DTO, hoặc tên object nếu DTO bị lỗi) */}
                     <td>
-                      <span className="badge bg-light text-dark border">{eq.loai}</span>
+                      <span className="badge bg-light text-dark border">
+                        {typeof eq.loai === 'object' ? eq.loai.tenLoai : eq.loai || "N/A"}
+                      </span>
                     </td>
-                    <td>{eq.phong}</td>
+                    
+                    {/* CỘT PHÒNG (FIXED: Dùng string từ DTO, hoặc tên object nếu DTO bị lỗi) */}
+                    <td>{typeof eq.phong === 'object' ? eq.phong.tenPhong : eq.phong || "Chưa gán"}</td>
+                    
+                    {/* Giá trị gốc */}
                     <td className="text-end text-muted small">
-                      {eq.giaTriBanDau?.toLocaleString("vi-VN") || 0}
+                      {formatCurrency(eq.giaTriBanDau)}
                     </td>
+                    
+                    {/* Giá trị còn lại */}
                     <td className="text-end fw-bold">
-                      {eq.giaTriHienTai?.toLocaleString("vi-VN") || 0}
+                      {formatCurrency(eq.giaTriHienTai)}
                     </td>
                     <td className="text-center">
                       <span className={`badge ${statusColors[eq.tinhTrang] || "bg-secondary"}`}>
@@ -366,7 +387,7 @@ export default function EquipmentTable() {
           Trang {currentPage + 1} trên {totalPages}
         </small>
 
-        <PaginationButtons /> {/* Sử dụng component mới */}
+        <PaginationButtons />
       </div>
     </div>
   );

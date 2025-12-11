@@ -1,5 +1,6 @@
 package com.thiet_thi.project_one.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,5 +25,6 @@ public class Phong {
     private DonVi donVi;
 
     @OneToMany(mappedBy = "phong", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<ThietBi> thietBis;
 }
