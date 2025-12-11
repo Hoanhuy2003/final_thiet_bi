@@ -1,65 +1,85 @@
-// src/main/java/com/thiet_thi/project_one/controllers/KiemKeController.java
 package com.thiet_thi.project_one.controllers;
 
 import com.thiet_thi.project_one.dtos.KiemKeDto;
-import com.thiet_thi.project_one.exceptions.DataNotFoundException;
 import com.thiet_thi.project_one.iservices.IKiemKeService;
-import com.thiet_thi.project_one.models.KiemKe;
 import com.thiet_thi.project_one.responses.KiemKeResponse;
+import com.thiet_thi.project_one.models.KiemKe;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
-@RequestMapping("/api/kiem_ke")
+@RequestMapping("/api/kiem-ke")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class KiemKeController {
 
     private final IKiemKeService kiemKeService;
 
-    // GET: Danh sách phiếu kiểm kê (có thống kê đẹp)
+//    @GetMapping
+//    public ResponseEntity<Page<KiemKeResponse>> getAllKiemKeSessions(Pageable pageable) {
+//        try {
+//            Page<KiemKeResponse> sessions = kiemKeService.getAllKiemKeSessions(pageable);
+//            return ResponseEntity.ok(sessions);
+//        } catch (Exception e) {
+//            // Trả về 500 nếu lỗi server khi lấy danh sách
+//            return ResponseEntity.internalServerError().body(null);
+//        }
+//    }
+
+    @PostMapping("/session")
+    public ResponseEntity<KiemKe> createSession(@RequestBody KiemKeDto dto) {
+        try {
+            KiemKe kiemKe = kiemKeService.createNewSession(dto);
+
+            return ResponseEntity.ok(kiemKe);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+    @PostMapping("/submit")
+    public ResponseEntity<String> submitChecklist(@RequestBody KiemKeDto dto) {
+        try {
+            kiemKeService.submitChecklist(dto);
+            return ResponseEntity.ok("Hoàn thành kiểm kê và cập nhật tài sản thành công.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi submit checklist: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{maKiemKe}")
+    public ResponseEntity<KiemKeResponse> getKiemKeReport(@PathVariable String maKiemKe) {
+        try {
+            KiemKe kiemKeEntity = kiemKeService.getReportById(maKiemKe);
+            KiemKeResponse response = KiemKeResponse.fromKiemKe(kiemKeEntity);
+
+            // Trả về 200 OK và DTO báo cáo
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            // Trả về 404 Not Found với thông báo lỗi
+            return ResponseEntity.status(404).body(null);
+        }
+    }
     @GetMapping
-    public ResponseEntity<List<KiemKeResponse>> getAll() {
-        List<KiemKeResponse> responses = kiemKeService.getAll().stream()
-                .map(KiemKeResponse::fromKiemKe)
-                .toList();
-        return ResponseEntity.ok(responses);
-    }
+    public ResponseEntity<?> getAllKiemKe(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
 
-    // GET: Chi tiết 1 phiếu
-    @GetMapping("/{maKK}")
-    public ResponseEntity<KiemKeResponse> getById(@PathVariable String maKK) throws DataNotFoundException {
-        KiemKe kk = kiemKeService.getById(maKK);
-        return ResponseEntity.ok(KiemKeResponse.fromKiemKe(kk));
-    }
+            // Các tham số lọc
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String maPhong,
+            @RequestParam(required = false) String trangThai
+    ) {
+        // Sắp xếp ngày mới nhất lên đầu
+        Pageable pageable = PageRequest.of(page, size, Sort.by("ngayKiemKe").descending());
 
-    // GET: Tất cả chi tiết kiểm kê (nếu cần)
-    @GetMapping("/chi_tiet")
-    public ResponseEntity<List<KiemKeResponse.ChiTietKiemKeResponse>> getAllChiTiet() {
-        List<KiemKeResponse.ChiTietKiemKeResponse> response = kiemKeService.getAllChiTiet()
-                .stream()
-                .map(KiemKeResponse.ChiTietKiemKeResponse::fromChiTietKiemKe)
-                .toList();
-        return ResponseEntity.ok(response);
+        // Gọi hàm service có lọc (đã viết ở bước trước)
+        Page<KiemKeResponse> result = kiemKeService.filterKiemKeSessions(keyword, maPhong, trangThai, pageable);
 
-    }
-
-    // POST: Tạo mới
-    @PostMapping
-    public ResponseEntity<KiemKeResponse> create(@RequestBody KiemKeDto dto) throws DataNotFoundException {
-        KiemKe saved = kiemKeService.create(dto);
-        return ResponseEntity.ok(KiemKeResponse.fromKiemKe(saved));
-    }
-
-    // PUT: Cập nhật
-    @PutMapping("/{maKK}")
-    public ResponseEntity<KiemKeResponse> update(
-            @PathVariable String maKK,
-            @RequestBody KiemKeDto dto) throws DataNotFoundException {
-        KiemKe updated = kiemKeService.update(maKK, dto);
-        return ResponseEntity.ok(KiemKeResponse.fromKiemKe(updated));
+        return ResponseEntity.ok(result);
     }
 }

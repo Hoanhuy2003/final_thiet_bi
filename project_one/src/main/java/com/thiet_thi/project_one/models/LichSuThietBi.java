@@ -18,7 +18,11 @@ public class LichSuThietBi {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ma_tb", nullable = false)
     private ThietBi thietBi;
+    @Column(name = "hanh_dong", length = 100)
+    private String hanhDong; // Ví dụ: "Kiểm kê", "Bảo trì", "Điều chuyển"
 
+    @Column(name = "ghi_chu", length = 500) // Để dài chút để lưu chi tiết kết quả kiểm kê
+    private String ghiChu;
     @Column(name = "trang_thai_cu", length = 50)
     private String trangThaiCu;
 

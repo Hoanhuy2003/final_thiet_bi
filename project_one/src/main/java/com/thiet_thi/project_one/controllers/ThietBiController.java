@@ -85,16 +85,17 @@ public class ThietBiController {
 
             // THAM SỐ LỌC TỪ FRONTEND
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String loai, // maLoai
+            @RequestParam(required = false) String loai,
             @RequestParam(required = false) String tinhTrang,
-            @RequestParam(required = false) String phong) { // maPhong
+            @RequestParam(required = false) String maDonVi,
+            @RequestParam(required = false) String phong) {
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         // Gọi hàm Service mới để áp dụng lọc
         Page<ThietBiResponse> thietBiPage = thietBiService.searchAndFilter(
-                search, loai, tinhTrang, phong, pageable
+                search, loai, tinhTrang, phong, maDonVi, pageable
         );
 
         return ApiResponse.<Page<ThietBiResponse>>builder()

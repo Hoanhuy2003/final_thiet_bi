@@ -27,6 +27,7 @@ public interface IThietBiService {
             String maLoai,
             String tinhTrang,
             String maPhong,
+            String maDonVi,
             Pageable pageable);
 
 

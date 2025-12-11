@@ -21,7 +21,8 @@ export default function EquipmentEditModal() {
     { value: "Bảo trì", label: "Bảo trì" },
     { value: "Hỏng hóc", label: "Hỏng hóc" },
     { value: "Chờ thanh lý", label: "Chờ thanh lý" },
-    { value: "Đã thanh lý", label: "Đã thanh lý" }
+    { value: "Đã thanh lý", label: "Đã thanh lý" },
+    { value: "Hết khấu hao", label: "Hết khấu hao" }
   ];
 
   const [form, setForm] = useState({

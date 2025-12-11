@@ -302,9 +302,7 @@ export default function UserProcurement() {
                     </div>
 
                     <div className="d-flex gap-2">
-                        <button type="button" className="btn btn-sm btn-outline-primary" onClick={handleAddItem} disabled={loading}>
-                            <Plus size={16} className="me-1"/> Thêm dòng
-                        </button>
+                        
                         <div className="flex-grow-1"></div>
                         <div className="fw-bold fs-5 text-primary">
                             Tổng cộng: {form.items.reduce((sum, item) => sum + (item.soLuong * item.donGia), 0).toLocaleString('vi-VN')}đ

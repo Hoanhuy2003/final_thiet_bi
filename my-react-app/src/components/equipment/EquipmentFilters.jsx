@@ -24,7 +24,8 @@ export default function EquipmentFilters() {
     { value: "Bảo trì", label: "Bảo trì" },
     { value: "Hỏng hóc", label: "Hỏng hóc" },
     { value: "Chờ thanh lý", label: "Chờ thanh lý" },
-    { value: "Đã thanh lý", label: "Đã thanh lý" }
+    { value: "Đã thanh lý", label: "Đã thanh lý" },
+{ value: "Hết khấu hao", label: "Hết khấu hao" }
   ];
 
   // 3. LOAD DATA API (Lưu Mã/ID)

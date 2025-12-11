@@ -24,4 +24,7 @@ public class ChiTietKiemKe {
 
     @Column(name = "ghi_chu", length = 200)
     private String ghiChu;
+
+    @Column(name = "tinh_trang_he_thong")
+    private String tinhTrangHeThong;
 }
