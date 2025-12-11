@@ -347,13 +347,7 @@ export default function EquipmentTable() {
                           onClick={() => openDisposal(eq)}
                           title="Thanh lý"
                         >
-                          <DollarSign size={16} />
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger border-0"
-                          onClick={() => handleDelete(eq.maTB)}
-                          title="Xóa"
-                        >
+                          
                           <Trash2 size={16} />
                         </button>
                       </div>

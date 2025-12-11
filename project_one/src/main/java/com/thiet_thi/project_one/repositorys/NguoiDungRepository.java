@@ -11,6 +11,8 @@ import java.util.Optional;
 
 public interface NguoiDungRepository extends JpaRepository<NguoiDung, String> {
 
+    Optional<NguoiDung> findByMaND(String maND);
+
     boolean existsByEmail(String email);
 
     Optional<NguoiDung> findByEmail(String email);

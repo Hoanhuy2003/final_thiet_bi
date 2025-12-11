@@ -161,7 +161,7 @@ export default function DisposalDetailModal() {
                             <th>Hình thức</th>
                             <th>Trạng thái</th>
                             <th>Người duyệt</th>
-                            <th>Ngày thanh lý</th>
+                            <th>Ngày duyệt</th>
                           </tr>
                         </thead>
                         <tbody>

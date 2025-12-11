@@ -39,6 +39,9 @@ public class ChiTietThanhLyDto {
     @JsonProperty("ten_phong")
     private String tenPhong;
 
+    @JsonProperty("trang_thai_cu_thiet_bi_cu")
+    private String tinhTrangTBCu;
+
     @JsonProperty("tinh_trang")
     private String tinhTrang; // Ví dụ: Hỏng, Mục nát, Hết khấu hao...
 

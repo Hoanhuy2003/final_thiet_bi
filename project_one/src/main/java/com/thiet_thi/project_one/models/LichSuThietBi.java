@@ -25,6 +25,20 @@ public class LichSuThietBi {
     @Column(name = "trang_thai_moi", length = 50)
     private String trangThaiMoi;
 
+    // Phòng
+    @Column(name = "phong_cu", length = 100)
+    private String phongCu;
+
+    @Column(name = "phong_moi", length = 100)
+    private String phongMoi;
+
+    // Loại thiết bị (nếu cần)
+    @Column(name = "loai_cu", length = 100)
+    private String loaiCu;
+
+    @Column(name = "loai_moi", length = 100)
+    private String loaiMoi;
+
     @Column(name = "ngay_thay_doi", nullable = false)
     private LocalDate ngayThayDoi;
 

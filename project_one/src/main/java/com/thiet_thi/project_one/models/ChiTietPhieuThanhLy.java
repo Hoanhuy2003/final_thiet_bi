@@ -42,6 +42,9 @@ public class ChiTietPhieuThanhLy {
     @Column(name = "so_nam_su_dung")
     private Integer soNamSuDung;
 
+    @Column(name = "trang_thai_cu_thiet_bi_cu", length = 50)
+    private String tinhTrangTBCu;
+
     // Thông tin thanh lý thực tế
     @Column(name = "hinh_thuc_thanh_ly", length = 100, nullable = false)
     private String hinhThucThanhLy;
