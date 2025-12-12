@@ -1,6 +1,9 @@
 import { Plus } from "lucide-react";
+import { getUserRole } from "../../services/authService";
 
 export default function BatchHeader() {
+  const role = getUserRole();
+  const canCreate = ["ADMIN"].includes(role);
   return (
     <div className="d-flex align-items-center justify-content-between mb-4">
       <div>
@@ -9,13 +12,16 @@ export default function BatchHeader() {
           Tạo và quản lý các lô thiết bị nhập kho hàng loạt
         </p>
       </div>
-      <button
-        className="btn btn-primary"
-        onClick={() => window.dispatchEvent(new Event("openCreateBatchModal"))}
-      >
-        <Plus size={16} className="me-2" />
-        Tạo lô mới
-      </button>
+      {canCreate && (
+        <button
+          className="btn btn-primary"
+          onClick={() => window.dispatchEvent(new Event("openCreateBatchModal"))}
+        >
+          <Plus size={16} className="me-2" />
+          Tạo lô mới
+        </button>
+      )}
+      
     </div>
   );
 }

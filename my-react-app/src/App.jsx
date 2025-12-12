@@ -33,19 +33,14 @@ import UserDisposal from "./pages/user/UserDisposal.jsx";
 // ==================== ĐỊNH NGHĨA ROLE ====================
 const ROLES = {
   ADMIN: 'ADMIN',
-  THUKHO: 'THUKHO',
-  HIEUTRUONG: 'HIEUTRUONG',
-  HCQT: 'HCQT',
-
   NHANVIENTHIETBI: 'NHANVIENTHIETBI',     // Nhân viên thiết bị
   NHANVIENKIEMKE: 'NHANVIENKIEMKE',       // Nhân viên kiểm kê
   NHANVIENMUASAM: 'NHANVIENMUASAM',        // Nhân viên mua sắm
-
-  GIANGVIEN: ['GIANGVIEN', 'VT007']
+  TRUONGKHOA: ['GIANGVIEN']
 };
 
 // Kiểm tra quyền toàn cục (Admin + lãnh đạo)
-const hasFullAccess = (role) => ['ADMIN', 'THUKHO', 'HIEUTRUONG', 'HCQT'].includes(role);
+const hasFullAccess = (role) => ['ADMIN'].includes(role);
 
 // ==================== PROTECTED ROUTE ====================
 function ProtectedRoute({ allowedRoles = [], children }) {
@@ -58,7 +53,7 @@ function ProtectedRoute({ allowedRoles = [], children }) {
   const isAllowed = allowedRoles.includes(userRole) || hasFullAccess(userRole);
 
   if (!isAllowed) {
-    if (ROLES.GIANGVIEN.includes(userRole)) {
+    if (ROLES.TRUONGKHOA.includes(userRole)) {
       return <Navigate to="/portal/dashboard" replace />;
     }
 
@@ -111,11 +106,12 @@ function HomeRedirect() {
   if (hasFullAccess(role) || 
       role === 'NHANVIENTHIETBI' || 
       role === 'NHANVIENKIEMKE' || 
+      role === 'NHANVIENTHANHLY' ||
       role === 'NHANVIENMUASAM') {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (ROLES.GIANGVIEN.includes(role)) {
+  if (ROLES.TRUONGKHOA.includes(role)) {
     return <Navigate to="/portal/dashboard" replace />;
   }
 
@@ -146,7 +142,7 @@ export default function App() {
       <Route element={<AdminLayout />}>
         {/* Dashboard - tất cả nhân viên đều được vào */}
         <Route path="/dashboard" element={
-          <ProtectedRoute allowedRoles={['NHANVIENTHIETBI', 'NHANVIENKIEMKE', 'NHANVIENMUASAM']}>
+          <ProtectedRoute allowedRoles={['NHANVIENTHIETBI', 'NHANVIENKIEMKE', 'NHANVIENMUASAM', 'NHANVIENTHANHLY']}>
             <DashboardPage />
           </ProtectedRoute>
         } />
@@ -177,9 +173,9 @@ export default function App() {
           </ProtectedRoute>
         } />
 
-        {/* Chỉ Admin + lãnh đạo */}
+        {/* Nhân viên thanh lý */}
         <Route path="/disposal" element={
-          <ProtectedRoute allowedRoles={[]}> {/* hasFullAccess sẽ cho phép */}
+          <ProtectedRoute allowedRoles={['NHANVIENTHANHLY']}> 
             <DisposalPage />
           </ProtectedRoute>
         } />
@@ -198,9 +194,9 @@ export default function App() {
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
 
-      {/* ==================== GIẢNG VIÊN ==================== */}
+      {/* ==================== Trưởng khoa ==================== */}
       <Route path="/portal" element={
-        <ProtectedRoute allowedRoles={ROLES.GIANGVIEN}>
+        <ProtectedRoute allowedRoles={ROLES.TRUONGKHOA}>
           <UserLayout onLogout={logout} />
         </ProtectedRoute>
       }>
