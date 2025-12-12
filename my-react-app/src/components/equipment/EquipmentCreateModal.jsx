@@ -10,11 +10,15 @@ export default function EquipmentCreateModal() {
   const [dsPhong, setDsPhong] = useState([]);
   const [dsLoai, setDsLoai] = useState([]);
 
+  // THÊM: DANH SÁCH NHÀ CUNG CẤP TỪ API
+  const [dsNhaCungCap, setDsNhaCungCap] = useState([]);
+
   const [form, setForm] = useState({
     ten_tb: "",
     ma_loai: "",
     ma_lo: null,
     ma_phong: "",
+    ma_nha_cung_cap: "", // <-- THÊM FIELD NHÀ CUNG CẤP
     gia_tri_ban_dau: "",
     tinh_trang: "Đang sử dụng",
     ngay_su_dung: new Date().toISOString().split("T")[0],
@@ -23,12 +27,14 @@ export default function EquipmentCreateModal() {
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
-        const [resLoai, resPhong] = await Promise.all([
+        const [resLoai, resPhong, resNhaCungCap] = await Promise.all([ // THÊM API NHÀ CUNG CẤP
           axiosInstance.get("/api/loai_thiet_bi"),
           axiosInstance.get("/api/phong"),
+          axiosInstance.get("/api/nha_cung_cap"), // <-- GỌI API NHÀ CUNG CẤP
         ]);
         setDsLoai(resLoai.data.result || resLoai.data || []);
         setDsPhong(resPhong.data.result || resPhong.data || []);
+        setDsNhaCungCap(resNhaCungCap.data.result || resNhaCungCap.data || []); // <-- SET DANH SÁCH NCC
       } catch (err) {
         console.error("Lỗi tải danh mục:", err);
       }
@@ -84,6 +90,17 @@ export default function EquipmentCreateModal() {
                   <option value="">-- Chọn loại --</option>
                   {dsLoai.map(item => (
                     <option key={item.maLoai} value={item.maLoai}>{item.tenLoai}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* THÊM: NHÀ CUNG CẤP */}
+              <div className="col-md-6">
+                <label className="form-label fw-bold">Nhà cung cấp</label>
+                <select className="form-select" value={form.ma_nha_cung_cap} onChange={e => setForm({...form, ma_nha_cung_cap: e.target.value})}>
+                  <option value="">-- Chọn nhà cung cấp --</option>
+                  {dsNhaCungCap.map(ncc => (
+                    <option key={ncc.maNhaCungCap} value={ncc.maNhaCungCap}>{ncc.ten}</option>
                   ))}
                 </select>
               </div>

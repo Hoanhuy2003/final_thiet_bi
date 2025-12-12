@@ -32,13 +32,16 @@ public class KiemKeController {
 //    }
 
     @PostMapping("/session")
-    public ResponseEntity<KiemKe> createSession(@RequestBody KiemKeDto dto) {
+    public ResponseEntity<?> createSession(@RequestBody KiemKeDto dto) {
         try {
-            KiemKe kiemKe = kiemKeService.createNewSession(dto);
+            // Thêm dòng này để debug trên Console của IntelliJ
+            System.out.println("Payload nhận được: " + dto);
 
+            KiemKe kiemKe = kiemKeService.createNewSession(dto);
             return ResponseEntity.ok(kiemKe);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(null);
+            e.printStackTrace(); // In lỗi ra log server
+            return ResponseEntity.badRequest().body("Lỗi Server: " + e.getMessage());
         }
     }
     @PostMapping("/submit")
@@ -65,7 +68,7 @@ public class KiemKeController {
         }
     }
     @GetMapping
-    public ResponseEntity<?> getAllKiemKe(
+    public ResponseEntity<?> getAllKiemKeSessions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
 

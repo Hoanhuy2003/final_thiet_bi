@@ -1,5 +1,6 @@
 package com.thiet_thi.project_one.repositorys;
 
+import com.thiet_thi.project_one.models.Phong;
 import com.thiet_thi.project_one.models.ThietBi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,7 +45,7 @@ public interface ThietBiRepository extends JpaRepository<ThietBi, String> {
             @Param("maPhong") String maPhong,
             @Param("maDonVi") String maDonVi,
             Pageable pageable);
-
+    long countByPhong(Phong phong);
     
 }
 

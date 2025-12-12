@@ -32,6 +32,5 @@ public interface IKiemKeService {
     KiemKe getReportById(String maKiemKe) throws DataNotFoundException;
 
     KiemKe getById(String maKiemKe) throws DataNotFoundException;
-    Page<KiemKeResponse> getAllKiemKeSessions(Pageable pageable);
     Page<KiemKeResponse> filterKiemKeSessions(String keyword, String maPhong, String trangThai, Pageable pageable);
 }

@@ -30,4 +30,9 @@ public class LichSuThietBiDto {
 
     @JsonProperty("ten_nguoi_thay_doi")
     private String tenNguoiThayDoi;
+    @JsonProperty("hanh_dong")
+    private String hanhDong;
+
+    @JsonProperty("ghi_chu")
+    private String ghiChu;
 }

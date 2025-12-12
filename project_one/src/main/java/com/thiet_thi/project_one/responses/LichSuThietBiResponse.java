@@ -14,6 +14,11 @@ public class LichSuThietBiResponse {
     private String maTB;
     private String tenTB;
 
+    // --- BỔ SUNG 2 TRƯỜNG NÀY (Để Frontend hiển thị) ---
+    private String hanhDong;
+    private String ghiChu;
+    // ---------------------------------------------------
+
     // Trạng thái
     private String trangThaiCu;
     private String trangThaiMoi;
@@ -38,6 +43,9 @@ public class LichSuThietBiResponse {
                 .maLichSu(ls.getMaLichSu())
                 .maTB(ls.getThietBi().getMaTB())
                 .tenTB(ls.getThietBi().getTenTB())
+                .hanhDong(ls.getHanhDong())
+                .ghiChu(ls.getGhiChu())
+
                 .trangThaiCu(ls.getTrangThaiCu())
                 .trangThaiMoi(ls.getTrangThaiMoi())
                 .phongCu(ls.getPhongCu())
