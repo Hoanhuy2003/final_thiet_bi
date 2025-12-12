@@ -56,6 +56,7 @@ public class PhieuThanhLyResponse {
         private String maPhong;
         private String tenPhong;
         private String tinhTrang; // Trạng thái thiết bị
+        private String soSeri;
 
         // THÊM: Trạng thái duyệt từng món
         private String trangThai; // "Chờ duyệt", "Duyệt", "Từ chối"
@@ -115,6 +116,7 @@ public class PhieuThanhLyResponse {
                             .ghiChu(ct.getGhiChu())
                             .maNguoiDuyet(nguoiDuyetChiTiet != null ? nguoiDuyetChiTiet.getMaND() : null)
                             .tenNguoiDuyet(nguoiDuyetChiTiet != null ? nguoiDuyetChiTiet.getTenND() : null)
+                            .soSeri(tb.getSoSeri())
                             .build();
                 })
                 .collect(Collectors.toList());

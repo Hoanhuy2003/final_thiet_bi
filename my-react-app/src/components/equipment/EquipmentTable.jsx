@@ -363,14 +363,9 @@ export default function EquipmentTable() {
                         >
                           <Edit size={16} />
                         </button>
-                        <button
-                          className="btn btn-sm btn-outline-warning border-0"
-                          onClick={() => openDisposal(eq)}
-                          title="Thanh lý"
-                        >
-                          
-                          <Trash2 size={16} />
-                        </button>
+                        <button className="btn btn-outline-danger" title="Xóa" onClick={() => handleDelete(eq.maTB)}>
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </td>
                   </tr>

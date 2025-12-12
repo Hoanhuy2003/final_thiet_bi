@@ -1,6 +1,9 @@
 import { Plus } from "lucide-react";
+import { getUserRole } from "../../services/authService";
 
 export default function InventoryHeader() {
+  const role = getUserRole();
+  const canCreate = ["ADMIN"].includes(role);
   return (
     <div className="d-flex align-items-center justify-content-between mb-4">
       <div>
@@ -9,13 +12,16 @@ export default function InventoryHeader() {
           Tạo và quản lý các phiên kiểm kê thiết bị
         </p>
       </div>
-      <button
-        className="btn btn-primary"
-        onClick={() => window.dispatchEvent(new Event("openCreateInventoryModal"))}
-      >
-        <Plus size={16} className="me-2" />
-        Tạo phiên kiểm kê
-      </button>
+      {canCreate && (
+        <button
+          className="btn btn-primary"
+          onClick={() => window.dispatchEvent(new Event("openCreateInventoryModal"))}
+        >
+          <Plus size={16} className="me-2" />
+          Tạo phiên kiểm kê
+        </button>
+      )}
+      
     </div>
   );
 }

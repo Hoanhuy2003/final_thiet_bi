@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Edit, Package, Calendar, DollarSign, User, CheckCircle, XCircle } from "lucide-react";
+import { getUserRole } from "../../services/authService";
 import thanhLyService from "../../services/disposalService";
 import toast from "react-hot-toast";
 
@@ -14,9 +15,11 @@ export default function DisposalDetailModal() {
   const [phieu, setPhieu] = useState(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const role = getUserRole();
+  const canCreate = ["ADMIN"].includes(role);
 
   // Giả sử bạn có thông tin người dùng hiện tại (sẽ lấy từ auth context sau)
-  const currentUserId = "ND001"; // Thay bằng user thực tế
+  const currentUserId = "87d21f8f-e43c-421c-8440-e3e9904738ee"; // Thay bằng user thực tế
 
   useEffect(() => {
     const handler = async () => {
@@ -202,7 +205,7 @@ export default function DisposalDetailModal() {
                 </button>
 
                 {/* Chỉ hiện khi đang chờ duyệt */}
-                {isPending && (
+                {isPending && canCreate && (
                   <>
                     <button
                       className="btn btn-danger d-flex align-items-center gap-2"
