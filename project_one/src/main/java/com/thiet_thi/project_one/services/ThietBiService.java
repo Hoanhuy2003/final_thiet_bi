@@ -31,6 +31,7 @@ public class ThietBiService implements IThietBiService {
     private final PhongRepository phongRepository;
     private final LichSuThietBiRepository lichSuThietBiRepository;
     private final NguoiDungRepository nguoiDungRepository;
+    private final NhaCungCapRepository nhaCungCapRepository;
 
     @Override
     @Transactional
@@ -59,7 +60,8 @@ public class ThietBiService implements IThietBiService {
         if (giaTriHienTai.compareTo(BigDecimal.ZERO) == 0 && !"Đã thanh lý".equals(tinhTrang)) {
             tinhTrang = "Hết khấu hao";
         }
-        // ----------------------------------------------
+        NhaCungCap nhaCungCap = nhaCungCapRepository.findById(dto.getMaNhaCungCap())
+                .orElseThrow(() -> new DataNotFoundException("Không tìm thấy nhà cung cấp")) ;
 
         ThietBi tb = ThietBi.builder()
                 .maTB(maTB)
@@ -73,6 +75,7 @@ public class ThietBiService implements IThietBiService {
                 .ngaySuDung(dto.getNgaySuDung() != null ? dto.getNgaySuDung() : LocalDate.now())
                 .soSeri(dto.getSoSeri())
                 .thongSoKyThuat(dto.getThongSoKyThuat())
+                .maNhaCungCap(nhaCungCap)
                 .build();
 
         return thietBiRepository.save(tb);

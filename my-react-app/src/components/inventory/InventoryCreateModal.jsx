@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Building2, Users, Calendar, ClipboardCheck } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
-import { inventoryService } from "../../services/inventoryService";
 import userService from "../../services/userService"; 
+import { inventoryService } from "../../services/inventoryService"; // Import Service
 import toast from "react-hot-toast";
 
 const initialFormState = {
   maPhong: null,
   maDonVi: null,
-  maNguoiKiemKe: null, 
+  maNguoiKiemKe: "", 
   ngayKiemKe: new Date().toISOString().split('T')[0],
   ghiChu: "",
 };
@@ -19,71 +19,59 @@ export default function InventoryCreateModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [form, setForm] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
-  const [currentUserDisplayName, setCurrentUserDisplayName] = useState('Đang tải...'); 
     
   const [masterData, setMasterData] = useState({
     donVi: [],
     phong: [],
+    users: [] 
   });
   const [filteredRooms, setFilteredRooms] = useState([]);
 
-  // --- 1. LOAD MASTER DATA (Logic lấy ID & Tên tối ưu) ---
+  // --- 1. LOAD DỮ LIỆU ---
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
-        const [resDonVi, resPhong, userInfo] = await Promise.all([
+        const [resDonVi, resPhong, allUsers] = await Promise.all([
           axiosInstance.get("/api/donVi"), 
           axiosInstance.get("/api/phong"),
-          userService.getMyInfo(), 
+          userService.getAllList() 
         ]);
+
+        const allowedRoles = ["ADMIN", "NHANVIENKIEMKE", "VT001", "VT010"];
+        const safeUserList = Array.isArray(allUsers) ? allUsers : [];
+
+        const filteredUsers = safeUserList.filter(u => {
+            const roleCode = u.maVaiTro?.maVaiTro || ""; 
+            return allowedRoles.includes(roleCode);
+        });
 
         setMasterData({
           donVi: resDonVi.data.result || resDonVi.data || [],
           phong: resPhong.data.result || resPhong.data || [],
+          users: filteredUsers, 
         });
         
-        // Xử lý thông tin user
-        const user = userInfo?.maNguoiDung ? userInfo : (userInfo?.data?.result || userInfo?.data);
-
-        if (user && user.maNguoiDung) {
-            setForm(prev => ({ 
-                ...prev, 
-                maNguoiKiemKe: user.maNguoiDung 
-            }));
-            setCurrentUserDisplayName(user.hoTen || user.tenND || user.username);
-        } else {
-            console.error("Không lấy được thông tin user:", userInfo);
-            setCurrentUserDisplayName('Lỗi: Không tìm thấy thông tin');
-            setForm(prev => ({ ...prev, maNguoiKiemKe: null }));
-        }
-        
       } catch (err) {
-        console.error("Lỗi tải dữ liệu ban đầu:", err);
-        toast.error("Không tải được dữ liệu cần thiết.");
-        setCurrentUserDisplayName('Lỗi kết nối');
+        console.error("Lỗi tải dữ liệu:", err);
       }
     };
     
     if (isOpen) {
         fetchMasterData();
     }
-    
   }, [isOpen]); 
 
-  // --- 2. XỬ LÝ LỌC PHÒNG THEO ĐƠN VỊ ---
+  // --- 2. LỌC PHÒNG ---
   useEffect(() => {
     if (form.maDonVi) {
-      const filtered = masterData.phong.filter(p => 
-        p.maDonVi === form.maDonVi
-      );
+      const filtered = masterData.phong.filter(p => p.maDonVi === form.maDonVi);
       setFilteredRooms(filtered);
     } else {
       setFilteredRooms([]);
     }
   }, [form.maDonVi, masterData.phong]);
 
-
-  // --- 3. EVENT LISTENER ---
+  // --- 3. RESET FORM ---
   useEffect(() => {
     const handler = () => {
       setForm(initialFormState); 
@@ -93,50 +81,49 @@ export default function InventoryCreateModal() {
     return () => window.removeEventListener("openCreateInventoryModal", handler);
   }, []);
 
-  // --- 4. SUBMIT (FIX: Tự động mở Checklist sau khi tạo) ---
+  // --- 4. SUBMIT FORM (DÙNG SERVICE) ---
   const handleSubmit = async () => {
-    if (!form.maPhong || !form.maNguoiKiemKe) { 
-      return toast.error("Vui lòng chọn Phòng và kiểm tra thông tin người dùng.");
-    }
+    if (!form.maPhong) return toast.error("Vui lòng chọn Phòng.");
+    if (!form.maNguoiKiemKe) return toast.error("Vui lòng chọn Người kiểm kê.");
     
     setLoading(true);
     
     const payload = {
-      maPhong: form.maPhong,
-      maNguoiKiemKe: form.maNguoiKiemKe,
-      ngayKiemKe: form.ngayKiemKe, 
-      ghiChu: form.ghiChu,
-    };
+  ma_phong: form.maPhong,
+  ma_nguoi_kiem_ke: form.maNguoiKiemKe,
+  ngay_kiem_ke: form.ngayKiemKe,
+  ghi_chu: form.ghiChu,
+  chi_tiet: []  
+};
+
+    console.log("🚀 PAYLOAD:", payload);
 
     try {
-      // 1. Gọi API tạo phiên
-      const newSession = await inventoryService.createSession(payload);
-      
-      toast.success(`Tạo phiên ${newSession.maKiemKe} thành công! Đang chuyển sang kiểm kê...`);
-      
-      // 2. Đóng modal tạo hiện tại
+       
+      await inventoryService.createSession(payload);
+      // ------------------------------------------------------------------------
+
+      toast.success(`Tạo phiên thành công!`);
       setIsOpen(false);
       
-      // 3. Reload bảng danh sách (để hiện dòng mới "Đang kiểm kê")
+      // Chỉ reload bảng để hiện danh sách mới
       window.dispatchEvent(new Event("reloadInventoryTable")); 
-
-      // 4. QUAN TRỌNG: Mở ngay Modal Checklist với session vừa tạo
-      // Lưu session vào localStorage để ChecklistModal đọc được dữ liệu (maKiemKe, phong...)
-      localStorage.setItem("selectedInventorySession", JSON.stringify(newSession));
       
-      // Phát sự kiện mở Checklist (delay nhẹ 300ms để UI modal cũ đóng hẳn cho mượt)
-      setTimeout(() => {
-          window.dispatchEvent(new Event("openChecklistModal"));
-      }, 300);
+      // Đã xóa đoạn tự động mở Checklist theo yêu cầu của bạn
       
     } catch (error) {
-      console.error("Lỗi tạo phiên:", error.response || error);
-      toast.error("Lỗi tạo phiên. Vui lòng thử lại.");
+      console.error("❌ LỖI:", error);
+      if (error.response && error.response.data) {
+         const data = error.response.data;
+         const msg = typeof data === 'string' ? data : (data.message || "Lỗi tạo phiên");
+         toast.error("Lỗi: " + msg);
+      } else {
+         toast.error("Không kết nối được Server!");
+      }
     } finally {
       setLoading(false);
     }
   };
-
 
   if (!isOpen) return null;
 
@@ -145,25 +132,20 @@ export default function InventoryCreateModal() {
       <div className="modal-dialog modal-lg modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header">
-            <div>
-              <h5 className="modal-title">Tạo phiên kiểm kê mới</h5>
-              <p className="text-muted mb-0 text-sm">
-                Nhập thông tin để bắt đầu một phiên kiểm kê thiết bị
-              </p>
-            </div>
-            <button type="button" className="btn-close" onClick={() => setIsOpen(false)} disabled={loading}></button>
+            <h5 className="modal-title">Tạo phiên kiểm kê mới</h5>
+            <button type="button" className="btn-close" onClick={() => setIsOpen(false)}></button>
           </div>
+          
           <div className="modal-body">
             <div className="row g-3">
               
               {/* Đơn vị */}
               <div className="col-6">
-                <label className="form-label d-flex align-items-center gap-1"><Building2 size={16} /> Đơn vị *</label>
+                <label className="form-label fw-bold">Đơn vị *</label>
                 <select 
                     className="form-select"
                     value={form.maDonVi || ''}
                     onChange={e => setForm({...form, maDonVi: e.target.value, maPhong: null})}
-                    disabled={loading}
                 >
                   <option value="">-- Chọn đơn vị --</option> 
                     {masterData.donVi.map(dv => (
@@ -174,16 +156,14 @@ export default function InventoryCreateModal() {
               
               {/* Phòng */}
               <div className="col-6">
-                <label className="form-label d-flex align-items-center gap-1"><Building2 size={16} /> Phòng *</label>
+                <label className="form-label fw-bold">Phòng *</label>
                 <select 
                     className="form-select"
                     value={form.maPhong || ''}
                     onChange={e => setForm({...form, maPhong: e.target.value})}
-                    disabled={loading || !form.maDonVi || filteredRooms.length === 0}
+                    disabled={!form.maDonVi}
                 >
-                  <option value="">
-                        {form.maDonVi ? (filteredRooms.length === 0 ? "Không có phòng" : "-- Chọn phòng --") : "-- Chọn đơn vị trước --"}
-                    </option>
+                  <option value="">-- Chọn phòng --</option>
                     {filteredRooms.map(p => (
                         <option key={p.maPhong} value={p.maPhong}>{p.tenPhong}</option>
                     ))}
@@ -192,72 +172,61 @@ export default function InventoryCreateModal() {
               
               {/* Ngày kiểm kê */}
               <div className="col-6">
-                <label className="form-label d-flex align-items-center gap-1"><Calendar size={16} /> Ngày kiểm kê *</label>
+                <label className="form-label fw-bold">Ngày kiểm kê *</label>
                 <input 
                     type="date" 
                     className="form-control" 
                     value={form.ngayKiemKe}
                     onChange={e => setForm({...form, ngayKiemKe: e.target.value})}
-                    disabled={loading}
                 />
               </div>
               
-              {/* Người kiểm kê (Read-only) */}
+              {/* Người kiểm kê */}
               <div className="col-6">
-                <label className="form-label d-flex align-items-center gap-1"><Users size={16} /> Người kiểm kê *</label>
-                <div className="input-group">
-                    <input 
-                        type="text" 
-                        className={`form-control ${!form.maNguoiKiemKe ? 'is-invalid' : ''}`}
-                        value={currentUserDisplayName} 
-                        disabled 
-                    />
-                </div>
-                {(!form.maNguoiKiemKe && !loading) && 
-                    <small className="text-danger mt-1 d-block">
-                        Không lấy được ID người dùng. Vui lòng F5 hoặc đăng nhập lại.
-                    </small>
-                }
+                <label className="form-label fw-bold"><Users size={16} /> Người kiểm kê *</label>
+                <select 
+                    className="form-select"
+                    value={form.maNguoiKiemKe || ''}
+                    onChange={e => setForm({...form, maNguoiKiemKe: e.target.value})}
+                >
+                    <option value="">-- Chọn nhân viên --</option>
+                    {masterData.users.length > 0 ? (
+                        masterData.users.map(u => {
+                            const userId = u.maNguoiDung;
+                            const userName = u.hoTen;
+                            const roleName = u.maVaiTro?.tenVaiTro || "NV";
+
+                            return (
+                                <option key={userId} value={userId}>
+                                    {userName} ({roleName})
+                                </option>
+                            );
+                        })
+                    ) : (
+                        <option disabled>Không tìm thấy nhân viên phù hợp</option>
+                    )}
+                </select>
               </div>
               
               {/* Ghi chú */}
               <div className="col-12">
                 <label className="form-label">Ghi chú</label>
                 <textarea 
-                    className="form-control" 
-                    rows="3" 
-                    placeholder="Nhập ghi chú..."
-                    value={form.ghiChu}
-                    onChange={e => setForm({...form, ghiChu: e.target.value})}
-                    disabled={loading}
+                    className="form-control" rows="3" 
+                    value={form.ghiChu} onChange={e => setForm({...form, ghiChu: e.target.value})}
                 ></textarea>
               </div>
             </div>
-            <div className="border rounded p-3 bg-light mt-3">
-              <p className="text-sm mb-0 d-flex align-items-center gap-1">
-                <ClipboardCheck size={16} className="text-primary"/>
-                <strong>Lưu ý:</strong> Sau khi tạo, hệ thống sẽ tự động chuyển sang màn hình danh sách thiết bị để bạn thực hiện kiểm kê ngay.
-              </p>
+             <div className="alert alert-light border mt-3 mb-0 d-flex gap-2 align-items-center">
+                <ClipboardCheck size={20} className="text-primary"/>
+                <small>Sau khi tạo, dữ liệu sẽ hiển thị ngay trên bảng danh sách.</small>
             </div>
           </div>
+
           <div className="modal-footer">
-            <button className="btn btn-outline-secondary" onClick={() => setIsOpen(false)} disabled={loading}>Hủy</button>
-            <button 
-                className="btn btn-primary" 
-                onClick={handleSubmit} 
-                disabled={loading || !form.maPhong || !form.maNguoiKiemKe}
-            >
-                {loading ? (
-                    <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Đang tạo...
-                    </>
-                ) : (
-                    <>
-                        <Plus size={16} className="me-2" />
-                        Tạo phiên kiểm kê
-                    </>
-                )}
+            <button className="btn btn-outline-secondary" onClick={() => setIsOpen(false)}>Hủy</button>
+            <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !form.maPhong || !form.maNguoiKiemKe}>
+                {loading ? "Đang xử lý..." : "Lưu phiếu"}
             </button>
           </div>
         </div>

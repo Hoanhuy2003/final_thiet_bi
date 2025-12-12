@@ -271,10 +271,10 @@ export default function EquipmentEditModal() {
                   <label className="form-label fw-bold">Nguyên giá (VNĐ)</label>
                   <input type="number" className="form-control" value={form.giaTriBanDau} onChange={e => setForm({...form, giaTriBanDau: e.target.value})} />
                 </div>
-                <div className="col-md-6">
+                {/* <div className="col-md-6">
                   <label className="form-label fw-bold">Giá trị hiện tại (VNĐ)</label>
                   <input type="number" className="form-control" value={form.giaTriHienTai} onChange={e => setForm({...form, giaTriHienTai: e.target.value})} />
-                </div>
+                </div> */}
               </div>
             )}
           </div>

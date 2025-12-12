@@ -57,4 +57,8 @@ public class ThietBi {
 
     @Column(name = "ngay_cap_nhat")
     private LocalDate ngayCapNhat;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ma_nha_cung_cap")
+    private NhaCungCap maNhaCungCap;
 }

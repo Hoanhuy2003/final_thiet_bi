@@ -39,8 +39,12 @@ public class ThietBiDto {
 
     @JsonProperty("ngay_su_dung")
     private LocalDate ngaySuDung;
+
     @JsonProperty("so_seri")
     private String soSeri;
+
     @JsonProperty("thong_so_ky_thuat")
     private String thongSoKyThuat;
+    @JsonProperty("ma_nha_cung_cap")
+    private String maNhaCungCap;
 }
