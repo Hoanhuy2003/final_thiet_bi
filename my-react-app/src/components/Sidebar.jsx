@@ -5,8 +5,7 @@ import { getUserRole } from "../services/authService";
 export default function Sidebar({ isOpen = true, onToggle }) {
   const role = getUserRole(); // Lấy role hiện tại
 
-  // ==================== 1. MENU QUẢN TRỊ (ADMIN + NHÂN VIÊN) ====================
-  // Đã bỏ tiền tố "/admin"
+  // ==================== 1. MENU QUẢN TRỊ (ADMIN + TẤT CẢ NHÂN VIÊN) ====================
   const adminMenu = [
     { to: "/dashboard", icon: "bi-speedometer2", label: "Tổng quan", exact: true },
     { to: "/equipment", icon: "bi-cpu", label: "Quản lý thiết bị" },
@@ -20,7 +19,6 @@ export default function Sidebar({ isOpen = true, onToggle }) {
   ];
 
   // ==================== 2. MENU CHO GIẢNG VIÊN (USER) ====================
-  // Vẫn giữ "/portal" để tách biệt luồng người dùng thường
   const userMenu = [
     { to: "/portal/dashboard", icon: "bi-speedometer2", label: "Dashboard", exact: true },
     { to: "/portal/my-equipment", icon: "bi-laptop", label: "Thiết bị của tôi" },
@@ -30,10 +28,21 @@ export default function Sidebar({ isOpen = true, onToggle }) {
   ];
 
   // ==================== 3. XÁC ĐỊNH MENU HIỂN THỊ ====================
-  const isAdminGroup = ['ADMIN', 'THUKHO', 'HIEUTRUONG', 'HCQT', 'VT001'].includes(role);
-  
-  // Nếu là Admin group thì hiện menu Admin, ngược lại hiện menu User
-  const menuItems = isAdminGroup ? adminMenu : userMenu;
+  // Tất cả nhân viên (bao gồm cả NHANVIENTHIETBI, NHANVIENKIEMKE, NHANVIENMUASAM) đều dùng menu admin
+  const adminAndStaffRoles = [
+    'ADMIN', 'THUKHO', 'HIEUTRUONG', 'HCQT', 'VT001',
+    'NHANVIENTHIETBI', 'NHANVIENKIEMKE', 'NHANVIENMUASAM'
+  ];
+
+  const isAdminOrStaff = adminAndStaffRoles.includes(role);
+  const isGiangVien = ['GIANGVIEN', 'VT007'].includes(role);
+
+  // Nếu là giảng viên → menu portal
+  // Nếu là nhân viên/admin → menu admin
+  // Nếu không xác định → mặc định menu admin (tránh lỗi)
+  const menuItems = isGiangVien ? userMenu : adminMenu;
+
+  const pageTitle = isGiangVien ? "Cổng thông tin" : "Quản trị hệ thống";
 
   return (
     <aside
@@ -55,7 +64,7 @@ export default function Sidebar({ isOpen = true, onToggle }) {
             <div>
               <h1 className="h5 fw-bold text-white mb-0">EquipMS</h1>
               <small className="text-light opacity-75">
-                {isAdminGroup ? "Quản trị hệ thống" : "Cổng thông tin"}
+                {pageTitle}
               </small>
             </div>
           </>
