@@ -67,7 +67,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, isUserLayout })
         )}
 
         <ul className="navbar-nav ms-auto align-items-center gap-3">
-          {/* Notification */}
+          {/* 
           <li className="nav-item dropdown">
             <a className="nav-link position-relative text-secondary" href="#" data-bs-toggle="dropdown">
               <Bell size={20} />
@@ -75,11 +75,11 @@ export default function Header({ onToggleSidebar, isSidebarOpen, isUserLayout })
                 3
               </span>
             </a>
-            {/* Dropdown notification demo */}
+            
              <ul className="dropdown-menu dropdown-menu-end mt-2 shadow-sm border-0">
                 <li><span className="dropdown-item-text small text-muted">Không có thông báo mới</span></li>
              </ul>
-          </li>
+          </li> */}
 
           <div className="vr h-50 mx-2 text-secondary opacity-25"></div>
 
@@ -97,7 +97,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, isUserLayout })
                 </div>
               </div>
               
-              <div className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center border border-primary border-opacity-25" style={{ width: 40, height: 40 }}>
+              <div className="bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center border border-primary border-opacity-25" style={{ width: 40, height: 40 }}>
                 <User size={20} />
               </div>
             </a>

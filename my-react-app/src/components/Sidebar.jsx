@@ -14,7 +14,6 @@ export default function Sidebar({ isOpen = true, onToggle }) {
     { to: "/disposal", icon: "bi-recycle", label: "Thanh lý" },
     { to: "/procurement", icon: "bi-cart3", label: "Mua sắm" },
     { to: "/users", icon: "bi-people", label: "Người dùng" },
-    { to: "/reports", icon: "bi-file-earmark-bar-graph", label: "Báo cáo" },
     { to: "/profile", icon: "bi-person-circle", label: "Hồ sơ cá nhân" },
   ];
 

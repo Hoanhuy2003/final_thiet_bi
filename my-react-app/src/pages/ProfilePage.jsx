@@ -10,7 +10,7 @@ export default function ProfilePage() {
         </div>
         <div className="col-12 col-lg-8">
           <ProfileInfoCard />
-          <ProfileActivityLog />
+          {/* <ProfileActivityLog /> */}
         </div>
       </div>
 

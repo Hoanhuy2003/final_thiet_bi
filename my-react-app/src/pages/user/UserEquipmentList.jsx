@@ -321,7 +321,7 @@ const UserEquipmentList = () => {
         <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1050 }}>
           <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content shadow-lg">
-              <div className="modal-header bg-gradient-primary text-white">
+              <div className="modal-header bg-gradient-primary">
                 <h5 className="modal-title d-flex align-items-center gap-3">
                   <Package size={24} />
                   <div>

@@ -1,5 +1,5 @@
 // components/dashboard/StatsCards.jsx
-import { Package, CheckCircle, AlertTriangle, TrendingUp, RefreshCw } from "lucide-react";
+import { Package, CheckCircle, AlertTriangle, TrendingUp, Laptop } from "lucide-react";
 import { useState, useEffect } from "react";
 import dashboardService from "../../services/dashboardService";
 import toast from "react-hot-toast";
@@ -73,7 +73,7 @@ export function StatsCards() {
           <div className="card-body d-flex align-items-center">
             <div className="me-3">
               <div className="bg-primary text-white rounded-3 p-3">
-                <Package size={28} />
+                <Laptop  size={28} />
               </div>
             </div>
             <div>

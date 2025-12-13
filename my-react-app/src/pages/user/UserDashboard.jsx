@@ -8,6 +8,7 @@ import {
   CheckCircle2, 
   XCircle,
   Trash2,
+  Package,
   AlertTriangle
 } from 'lucide-react'; 
 import userService from '../../services/userService';
@@ -95,8 +96,8 @@ const UnitManagerDashboard = () => {
                         <h2 className="fw-bold mb-0">{stats.total}</h2>
                         <small className="text-muted">Tất cả thiết bị đang quản lý</small>
                     </div>
-                    <div className="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
-                        <PieChart size={32}/>
+                    <div className="bg-primary text-white rounded-3 p-3">
+                      <Package size={28} />
                     </div>
                 </div>
             </div>
@@ -188,7 +189,7 @@ const UnitManagerDashboard = () => {
         </div>
 
         {/* 4. Theo dõi đề xuất */}
-        <div className="col-md-6 col-lg-3">
+        {/* <div className="col-md-6 col-lg-3">
             <Link to="/portal/my-proposals" className="card text-decoration-none border-0 shadow-sm hover-up h-100">
                 <div className="card-body d-flex align-items-center p-4">
                     <div className="bg-light p-3 rounded-circle me-3">
@@ -200,7 +201,7 @@ const UnitManagerDashboard = () => {
                     </div>
                 </div>
             </Link>
-        </div>
+        </div> */}
 
       </div>
 

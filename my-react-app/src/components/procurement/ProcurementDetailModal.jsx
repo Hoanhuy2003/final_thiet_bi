@@ -24,7 +24,7 @@ export default function ProcurementDetailModal() {
     const currentUserId = getUserId(); 
     const role = getUserRole();
     // Admin, Hiệu trưởng, hoặc Quản trị thiết bị có quyền duyệt
-    const canApprove = ['ADMIN', 'HIEUTRUONG', 'NHANVIENMUASAM'].includes(role);
+    const canApprove = ['ADMIN'].includes(role);
 
     // --- HÀM TẢI LẠI CHI TIẾT ---
     const loadDetail = async (maDeXuat) => {

@@ -42,7 +42,19 @@ public class DashboardService {
 
         // 3. Giá trị tài sản còn lại
         BigDecimal giaTriConLai = all.stream()
-                .map(tb -> tb.getGiaTriHienTai() != null ? tb.getGiaTriHienTai() : tb.getGiaTriBanDau() != null ? tb.getGiaTriBanDau() : BigDecimal.ZERO)
+                // Lọc bỏ thiết bị có trạng thái "Đã thanh lý"
+                .filter(tb -> tb.getTinhTrang() == null || !"Đã thanh lý".equals(tb.getTinhTrang()))
+                // Lấy giá trị hiện tại, nếu null thì lấy nguyên giá, nếu nguyên giá null thì 0
+                .map(tb -> {
+                    if (tb.getGiaTriHienTai() != null) {
+                        return tb.getGiaTriHienTai();
+                    } else if (tb.getGiaTriBanDau() != null) {
+                        return tb.getGiaTriBanDau();
+                    } else {
+                        return BigDecimal.ZERO;
+                    }
+                })
+                // Tính tổng
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // 4. Thiết bị theo đơn vị
