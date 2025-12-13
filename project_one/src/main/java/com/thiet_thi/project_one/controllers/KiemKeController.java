@@ -1,9 +1,13 @@
 package com.thiet_thi.project_one.controllers;
 
+import com.thiet_thi.project_one.dtos.ApiResponse;
 import com.thiet_thi.project_one.dtos.KiemKeDto;
 import com.thiet_thi.project_one.iservices.IKiemKeService;
+import com.thiet_thi.project_one.repositorys.KiemKeRepository;
 import com.thiet_thi.project_one.responses.KiemKeResponse;
 import com.thiet_thi.project_one.models.KiemKe;
+import com.thiet_thi.project_one.services.ExcelService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -12,6 +16,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/kiem-ke")
@@ -19,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 public class KiemKeController {
 
     private final IKiemKeService kiemKeService;
+    private final ExcelService excelService;
+    private final KiemKeRepository kiemKeRepository;
 
 //    @GetMapping
 //    public ResponseEntity<Page<KiemKeResponse>> getAllKiemKeSessions(Pageable pageable) {
@@ -84,5 +92,53 @@ public class KiemKeController {
         Page<KiemKeResponse> result = kiemKeService.filterKiemKeSessions(keyword, maPhong, trangThai, pageable);
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/export")
+    public ApiResponse<byte[]> exportExcel() {
+        try {
+            // 1. Lấy danh sách Entity từ DB
+            List<KiemKe> listEntities = kiemKeRepository.findAll();
+
+            // 2. CHUYỂN ĐỔI ENTITY -> RESPONSE
+            // (Để áp dụng các logic tính toán trong fromKiemKe)
+            List<KiemKeResponse> listResponses = listEntities.stream()
+                    .map(KiemKeResponse::fromKiemKe) // Gọi hàm static map bạn đã viết
+                    .toList();
+
+            // 3. Đưa List Response vào hàm Excel đã sửa
+            byte[] excelBytes = excelService.exportKiemKeToExcel(listResponses);
+
+            return ApiResponse.<byte[]>builder()
+                    .result(excelBytes)
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi xuất Excel: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{ma}/export-bien-ban")
+
+    public ApiResponse<byte[]> exportBienBan(@PathVariable String ma) {
+        try {
+            // 1. Lấy chi tiết phiếu từ DB
+            KiemKe kk = kiemKeService.getById(ma);
+
+            // 2. Chuyển sang Response (để có số liệu thống kê Tồn/Mất/Hỏng)
+            KiemKeResponse responseData = KiemKeResponse.fromKiemKe(kk);
+
+            // 3. Vẽ Excel Chi tiết (Hàm này bạn đã viết trong ExcelService ở bước trước)
+            byte[] excelBytes = excelService.exportBienBanKiemKe(responseData);
+
+            // 4. Trả về ApiResponse (để Frontend nhận được .result)
+            return ApiResponse.<byte[]>builder()
+                    .result(excelBytes)
+                    .build();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi xuất biên bản: " + e.getMessage());
+        }
     }
 }

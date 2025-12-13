@@ -39,6 +39,14 @@ export const loThietBiService = {
     } catch (error) {
       throw error;
     }
+  },
+  exportExcel: async () => {
+    try {
+      const response = await axiosInstance.get(`${API_URL}/export`);
+      return response.data; 
+    } catch (error) {
+      throw error;
+    }
   }
   
 };

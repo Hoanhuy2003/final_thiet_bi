@@ -1,51 +1,88 @@
-// src/services/thanhLyService.js
-import axios from "../api/axiosInstance";
+import axiosInstance from "../api/axiosInstance";
 
 const API = "/api/thanh_ly";
 
 const disposalService = {
-  // Lấy danh sách tất cả phiếu thanh lý
+  // 1. Lấy danh sách tất cả
   getAll: async () => {
-    const response = await axios.get(API);
+    const response = await axiosInstance.get(API); 
     return response.data;
   },
 
-  // Lấy chi tiết 1 phiếu theo mã
+  // 2. Lấy chi tiết
   getByMa: async (ma) => {
-    const response = await axios.get(`${API}/${ma}`);
+    const response = await axiosInstance.get(`${API}/${ma}`);
     return response.data;
   },
 
-  // Tạo phiếu thanh lý mới
+  // 3. Tạo mới
   create: async (data) => {
-    const response = await axios.post(API, data);
+    const response = await axiosInstance.post(API, data);
     return response.data;
   },
 
-  // Cập nhật phiếu (chỉ khi chưa duyệt)
+  // 4. Cập nhật
   update: async (ma, data) => {
-    const response = await axios.put(`${API}/${ma}`, data);
+    const response = await axiosInstance.put(`${API}/${ma}`, data);
     return response.data;
   },
 
+  // 5. DUYỆT (Dùng @RequestParam) -> URL sẽ là: .../duyet?maNguoiDuyet=...
   duyetPhieu: async (maPhieu, maNguoiDuyet) => {
-    const response = await axios.patch(`${API}/${maPhieu}/duyet`, null, {
-      params: { maNguoiDuyet }
-    });
+    const response = await axiosInstance.patch(
+      `${API}/${maPhieu}/duyet`, 
+      null, // Body để null
+      { 
+        params: { maNguoiDuyet: maNguoiDuyet } // Config chứa params
+      }
+    );
     return response.data;
   },
 
-  tuChoiPhieu: async (maPhieu, maNguoiDuyet, lyDoTuChoi = "Không phù hợp chính sách") => {
-    const response = await axios.patch(`${API}/${maPhieu}/tuchoi`, null, {
-      params: { maNguoiDuyet, lyDoTuChoi }
-    });
+  // 6. TỪ CHỐI (Dùng @RequestParam)
+  tuChoiPhieu: async (maPhieu, maNguoiDuyet, lyDoTuChoi) => {
+    const response = await axiosInstance.patch(
+      `${API}/${maPhieu}/tuchoi`, 
+      null, // Body để null
+      {
+        // QUAN TRỌNG: Phải dùng params để khớp với @RequestParam backend
+        params: { 
+            maNguoiDuyet: maNguoiDuyet,
+            lyDoTuChoi: lyDoTuChoi 
+        }
+      }
+    );
     return response.data;
   },
 
-  // Xóa phiếu
+  // 7. Xóa
   delete: async (ma) => {
-    await axios.delete(`${API}/${ma}`);
+    await axiosInstance.delete(`${API}/${ma}`);
   },
+
+  // 8. Xuất Excel Danh sách
+  exportExcel: async () => {
+    try {
+      const response = await axiosInstance.get(`${API}/export`, {
+        responseType: 'blob' 
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // 9. Xuất Biên bản chi tiết
+  exportBienBan: async (maPhieu) => {
+    try {
+      const response = await axiosInstance.get(`${API}/${maPhieu}/export-bien-ban`, {
+        responseType: 'blob' 
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
 };
 
 export default disposalService;

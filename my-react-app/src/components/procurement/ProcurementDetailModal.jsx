@@ -17,14 +17,14 @@ export default function ProcurementDetailModal() {
     const [isOpen, setIsOpen] = useState(false);
     const [request, setRequest] = useState(null);
     const [loading, setLoading] = useState(false); 
-    const [reloading, setReloading] = useState(false); // Loading riêng cho reload
+    const [reloading, setReloading] = useState(false);
     
-    // Dùng Ref để giữ giá trị maDeXuat mới nhất cho Event Listener
     const currentRequestRef = useRef(null);
 
     const currentUserId = getUserId(); 
     const role = getUserRole();
-    const canApprove = ['ADMIN', 'HIEUTRUONG'].includes(role);
+    // Admin, Hiệu trưởng, hoặc Quản trị thiết bị có quyền duyệt
+    const canApprove = ['ADMIN', 'HIEUTRUONG', 'NHANVIENMUASAM'].includes(role);
 
     // --- HÀM TẢI LẠI CHI TIẾT ---
     const loadDetail = async (maDeXuat) => {
@@ -35,7 +35,7 @@ export default function ProcurementDetailModal() {
             const newData = res.data?.result || res.data || res;
             
             setRequest(newData);
-            currentRequestRef.current = newData; // Cập nhật Ref
+            currentRequestRef.current = newData;
             
         } catch (err) {
             console.error("Lỗi reload chi tiết:", err);
@@ -51,10 +51,8 @@ export default function ProcurementDetailModal() {
             if (data) {
                 const parsed = JSON.parse(data);
                 setRequest(parsed);
-                currentRequestRef.current = parsed; // Lưu vào Ref
+                currentRequestRef.current = parsed; 
                 setIsOpen(true);
-                
-                // Gọi API lấy dữ liệu mới nhất
                 loadDetail(parsed.maDeXuat); 
             }
         };
@@ -62,21 +60,18 @@ export default function ProcurementDetailModal() {
         return () => window.removeEventListener("openDetailProcurementModal", handler);
     }, []);
 
-    // 2. LẮNG NGHE SỰ KIỆN RELOAD (SỬA LẠI ĐỂ CHẮC CHẮN CHẠY)
+    // 2. LẮNG NGHE SỰ KIỆN RELOAD
     useEffect(() => {
         const reloadHandler = () => {
-            // Lấy mã từ Ref để đảm bảo không bị null hoặc cũ
             const ma = currentRequestRef.current?.maDeXuat;
             if (isOpen && ma) {
                 console.log("Đang tải lại dữ liệu cho đề xuất:", ma);
-                // Thêm delay 300ms để chờ Backend commit xong dữ liệu nhập kho
                 setTimeout(() => {
                     loadDetail(ma);
                 }, 300);
             }
         };
 
-        // Lắng nghe cả 2 sự kiện
         window.addEventListener("reloadBatchTable", reloadHandler); 
         window.addEventListener("procurementFilterChange", reloadHandler);
 
@@ -84,7 +79,7 @@ export default function ProcurementDetailModal() {
             window.removeEventListener("reloadBatchTable", reloadHandler);
             window.removeEventListener("procurementFilterChange", reloadHandler);
         };
-    }, [isOpen]); // Chỉ phụ thuộc isOpen
+    }, [isOpen]); 
 
 
     // --- CÁC HÀM XỬ LÝ KHÁC ---
@@ -105,6 +100,7 @@ export default function ProcurementDetailModal() {
         window.dispatchEvent(new Event("openImportBatchModal"));
     };
 
+    // --- DUYỆT ĐỀ XUẤT ---
     const handleApprove = async () => {
         if (!currentUserId) { toast.error("Lỗi xác thực."); return; }
         if (!window.confirm("Duyệt đề xuất này?")) return;
@@ -121,15 +117,26 @@ export default function ProcurementDetailModal() {
         } finally { setLoading(false); }
     };
 
+    // --- TỪ CHỐI ĐỀ XUẤT (ĐÃ SỬA: NHẬP LÝ DO) ---
     const handleReject = async () => {
         if (!currentUserId) { toast.error("Lỗi xác thực."); return; }
-        if (!window.confirm("Từ chối đề xuất này?")) return;
+        
+        // 1. Nhập lý do
+        const lyDo = window.prompt("Vui lòng nhập lý do từ chối:");
+        if (lyDo === null) return; // Hủy
+        if (lyDo.trim() === "") return toast.error("Bắt buộc phải nhập lý do!");
+
+        if (!window.confirm("Xác nhận TỪ CHỐI đề xuất này?")) return;
+        
         setLoading(true);
         try {
-            const res = await deXuatMuaService.reject(request.maDeXuat, currentUserId);
+            // 2. Gọi API với lý do
+            const res = await deXuatMuaService.reject(request.maDeXuat, currentUserId, lyDo);
             const newData = res.data?.result || res.data || res;
+            
             setRequest(newData); 
             currentRequestRef.current = newData;
+            
             toast.success("Đã từ chối!");
             window.dispatchEvent(new Event("procurementFilterChange"));
         } catch (err) {
@@ -145,8 +152,9 @@ export default function ProcurementDetailModal() {
     };
 
     if (!isOpen || !request) return null;
+    
+    // Check trạng thái
     const isPending = request.trangThai === "Chờ duyệt" || request.trangThai === "CHO_DUYET";
-    const isApproved = request.trangThai === "Đã duyệt" || request.trangThai === "DA_DUYET";
     
     const isProcuringOrComplete = [
         "Đã duyệt", "DA_DUYET", 
@@ -188,6 +196,15 @@ export default function ProcurementDetailModal() {
                                         <label className="fw-bold text-muted small text-uppercase">Trạng thái</label>
                                         <div><span className={`badge ${statusColors[request.trangThai]}`}>{request.trangThai}</span></div>
                                     </div>
+                                    
+                                    {/* HIỂN THỊ LÝ DO TỪ CHỐI (NẾU CÓ) */}
+                                    {request.lyDo && (
+                                        <div className="col-12 mt-3 pt-3 border-top">
+                                            <div className="alert alert-danger mb-0">
+                                                <strong>Lý do từ chối:</strong> {request.lyDo}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -201,13 +218,13 @@ export default function ProcurementDetailModal() {
                             <div className="table-responsive">
                                 <table className="table table-hover align-middle mb-0">
                                     <thead className="table-light">
-                                        <tr>
-                                            <th className="ps-3">Tên loại thiết bị</th>
-                                            <th className="text-center">Số lượng</th>
-                                            <th className="text-end">Đơn giá dự kiến</th>
-                                            <th className="text-end">Thành tiền</th>
-                                            <th className="text-center" style={{width: '140px'}}>Tác vụ</th>
-                                        </tr>
+                                            <tr>
+                                                <th className="ps-3">Tên loại thiết bị</th>
+                                                <th className="text-center">Số lượng</th>
+                                                <th className="text-end">Đơn giá dự kiến</th>
+                                                <th className="text-end">Thành tiền</th>
+                                                <th className="text-center" style={{width: '140px'}}>Tác vụ</th>
+                                            </tr>
                                     </thead>
                                     <tbody>
                                         {request.chiTiet?.length > 0 ? (
@@ -227,7 +244,7 @@ export default function ProcurementDetailModal() {
                                                             <span className="fw-bold fs-6">{slCanMua}</span>
                                                             {slDaNhap > 0 && (
                                                                 <div className={`small fw-bold mt-1 ${isCompleted ? 'text-success' : 'text-warning'}`}>
-                                                                    Đã về: {slDaNhap}/{slCanMua}
+                                                                        Đã về: {slDaNhap}/{slCanMua}
                                                                 </div>
                                                             )}
                                                         </td>
@@ -248,7 +265,7 @@ export default function ProcurementDetailModal() {
                                                                 </button>
                                                             ) : isCompleted ? (
                                                                 <span className="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1">
-                                                                    <Check size={14} className="me-1"/> Đủ hàng
+                                                                        <Check size={14} className="me-1"/> Đủ hàng
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-muted small">-</span>

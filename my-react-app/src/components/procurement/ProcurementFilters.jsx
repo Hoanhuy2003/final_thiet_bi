@@ -28,26 +28,6 @@ export default function ProcurementFilters() {
     return { search: "", trangThai: null, nguoiTao: null }; 
   });
 
-  // 2. LOAD DATA API (Lấy danh sách người dùng để lọc)
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        // API lấy danh sách người dùng (Giả định endpoint là /api/nguoi_dung)
-        const resUser = await axiosInstance.get("/api/nguoi_dung"); 
-
-        const rawUsers = resUser.data.result || resUser.data || [];
-        // Lưu Mã Người dùng (maND) vào value để Backend dễ lọc
-        setUserOptions(rawUsers.map(u => ({ 
-            value: u.maND, 
-            label: u.tenND 
-        })));
-        
-      } catch (error) {
-        console.error("Lỗi tải danh mục người dùng:", error);
-      }
-    };
-    fetchUsers();
-  }, []);
 
   // 3. LƯU LOCAL STORAGE & BẮN SỰ KIỆN (Để ProcurementTable load lại)
   useEffect(() => {

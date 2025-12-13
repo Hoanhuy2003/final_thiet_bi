@@ -145,22 +145,24 @@ public class ThietBiService implements IThietBiService {
         // 1. Lưu lại thông tin cũ để ghi log & so sánh
         String phongCu = tb.getPhong() != null ? tb.getPhong().getTenPhong() : "Chưa phân bổ";
         String tinhTrangCu = tb.getTinhTrang();
+        // Lấy tên loại cũ
+        String loaiCu = tb.getLoaiThietBi() != null ? tb.getLoaiThietBi().getTenLoai() : "Chưa xác định";
 
-        // 2. Xử lý Phòng (Nếu null thì giữ cũ)
+        // 2. Xử lý Phòng
         Phong phongMoi = tb.getPhong();
         if (dto.getMaPhong() != null && !dto.getMaPhong().isBlank()) {
             phongMoi = phongRepository.findById(dto.getMaPhong())
                     .orElseThrow(() -> new DataNotFoundException("Không tìm thấy phòng"));
         }
 
-        // 3. Xử lý Loại (Nếu null thì giữ cũ)
+        // 3. Xử lý Loại
         LoaiThietBi loaiMoi = tb.getLoaiThietBi();
         if (dto.getMaLoai() != null && !dto.getMaLoai().isBlank()) {
             loaiMoi = loaiThietBiRepository.findById(dto.getMaLoai())
                     .orElseThrow(() -> new DataNotFoundException("Không tìm thấy loại thiết bị"));
         }
 
-        // 4. Cập nhật thông tin
+        // 4. Cập nhật thông tin chính của thiết bị
         tb.setTenTB(dto.getTenTB());
         tb.setLoThietBi(dto.getMaLo() != null ? loThietBiRepository.findById(dto.getMaLo()).orElse(null) : tb.getLoThietBi());
         tb.setLoaiThietBi(loaiMoi);
@@ -182,38 +184,85 @@ public class ThietBiService implements IThietBiService {
         if(dto.getThongSoKyThuat() != null) tb.setThongSoKyThuat(dto.getThongSoKyThuat());
         if(dto.getNgaySuDung() != null) tb.setNgaySuDung(dto.getNgaySuDung());
 
-        // 6. GHI LỊCH SỬ THAY ĐỔI
+        // --- 6. GHI LỊCH SỬ THAY ĐỔI (LOGIC GỘP VÀ CHUẨN XÁC) ---
         String tenPhongMoi = phongMoi != null ? phongMoi.getTenPhong() : "Chưa phân bổ";
+        String loaiMoiTen = loaiMoi != null ? loaiMoi.getTenLoai() : "Chưa xác định";
 
-        // A. Log Chuyển phòng
-        if (!Objects.equals(phongCu, tenPhongMoi)) {
-            createHistoryLog(tb, "Điều chuyển",
-                    String.format("Chuyển từ '%s' sang '%s'", phongCu, tenPhongMoi),
-                    phongCu, tenPhongMoi, null, null);
-        }
+        boolean phongChanged = !Objects.equals(phongCu, tenPhongMoi);
+        boolean trangThaiChanged = !Objects.equals(tinhTrangCu, tb.getTinhTrang());
+        boolean loaiChanged = !Objects.equals(loaiCu, loaiMoiTen);
 
-        // B. Log Đổi trạng thái
-        if (!Objects.equals(tinhTrangCu, tb.getTinhTrang())) {
-            createHistoryLog(tb, "Cập nhật trạng thái",
-                    String.format("Trạng thái từ '%s' sang '%s'", tinhTrangCu, tb.getTinhTrang()),
-                    null, null, tinhTrangCu, tb.getTinhTrang());
+        if (phongChanged || trangThaiChanged || loaiChanged) {
+
+            // Xây dựng Ghi chú
+            StringBuilder ghiChuBuilder = new StringBuilder();
+            List<String> actions = new java.util.ArrayList<>();
+            String hanhDong = "Cập nhật";
+
+            if (phongChanged) {
+                actions.add("Điều chuyển");
+                ghiChuBuilder.append(String.format("Phòng: %s -> %s. ", phongCu, tenPhongMoi));
+            }
+            if (trangThaiChanged) {
+                actions.add("Trạng thái");
+                ghiChuBuilder.append(String.format("Trạng thái: %s -> %s. ", tinhTrangCu, tb.getTinhTrang()));
+            }
+            if (loaiChanged) {
+                actions.add("Loại thiết bị");
+                ghiChuBuilder.append(String.format("Loại: %s -> %s. ", loaiCu, loaiMoiTen));
+            }
+
+            // Xác định hành động chính (Ưu tiên "Điều chuyển" nếu có thay đổi phòng)
+            if (actions.contains("Điều chuyển")) {
+                hanhDong = "Điều chuyển";
+                if (actions.size() > 1) {
+                    hanhDong = "Điều chuyển và Cập nhật thuộc tính";
+                }
+            } else if (actions.size() == 1) {
+                hanhDong = actions.get(0); // VD: "Trạng thái" hoặc "Loại thiết bị"
+            } else if (actions.size() > 1) {
+                hanhDong = "Cập nhật nhiều thuộc tính";
+            }
+
+            // GỌI LOG MỘT LẦN DUY NHẤT VỚI ĐẦY ĐỦ THÔNG TIN
+            createHistoryLog(
+                    tb,
+                    hanhDong,
+                    ghiChuBuilder.toString().trim(),
+                    phongCu, tenPhongMoi,
+                    tinhTrangCu, tb.getTinhTrang(),
+                    loaiCu, loaiMoiTen
+            );
         }
 
         return thietBiRepository.save(tb);
     }
 
-    // Hàm phụ trợ ghi log (Clean Code)
+    // Hàm phụ trợ ghi log (CẦN SỬA ĐỂ NHẬN VÀ LƯU 8 THAM SỐ)
     private void createHistoryLog(ThietBi tb, String hanhDong, String ghiChu,
                                   String phongCu, String phongMoi,
-                                  String ttCu, String ttMoi) {
+                                  String ttCu, String ttMoi,
+                                  String loaiCu, String loaiMoi) {
+
+        // ⚠️ Chắc chắn Entity LichSuThietBi đã có đủ 8 trường này
         LichSuThietBi ls = LichSuThietBi.builder()
                 .maLichSu("LS" + System.currentTimeMillis())
                 .thietBi(tb)
+
+                // LƯU CÁC GIÁ TRỊ CŨ VÀ MỚI
                 .phongCu(phongCu)
                 .phongMoi(phongMoi)
                 .trangThaiCu(ttCu)
                 .trangThaiMoi(ttMoi)
-                .ngayThayDoi(LocalDate.now())
+                .loaiCu(loaiCu)
+                .loaiMoi(loaiMoi)
+
+                // LƯU HÀNH ĐỘNG VÀ GHI CHÚ
+                .hanhDong(hanhDong)
+                .ghiChu(ghiChu)
+
+                // Dùng LocalDateTime.now() (Nếu Entity dùng LocalDate thì thay thế)
+                .ngayThayDoi(java.time.LocalDate.now())
                 .nguoiThayDoi(getCurrentUser())
                 .build();
         lichSuThietBiRepository.save(ls);
@@ -248,4 +297,5 @@ public class ThietBiService implements IThietBiService {
                 .orElseThrow(() -> new DataNotFoundException("Không tìm thấy thiết bị để xóa"));
         thietBiRepository.delete(tb);
     }
+
 }

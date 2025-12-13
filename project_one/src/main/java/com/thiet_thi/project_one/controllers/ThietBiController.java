@@ -5,17 +5,22 @@ import com.thiet_thi.project_one.dtos.ThietBiDto;
 import com.thiet_thi.project_one.exceptions.DataNotFoundException;
 import com.thiet_thi.project_one.iservices.IThietBiService;
 import com.thiet_thi.project_one.models.ThietBi;
+import com.thiet_thi.project_one.repositorys.ThietBiRepository;
 import com.thiet_thi.project_one.responses.ThietBiResponse;
 
+import com.thiet_thi.project_one.services.ExcelService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +31,8 @@ import java.util.stream.Collectors;
 public class ThietBiController {
 
     private final IThietBiService thietBiService;
+    private final ExcelService excelService;
+    private final ThietBiRepository thietBiRepository;
 
     @PostMapping("")
     public ResponseEntity<?> createThietBi(@RequestBody ThietBiDto dto) {
@@ -110,5 +117,27 @@ public class ThietBiController {
         return ApiResponse.<List<ThietBiResponse>>builder()
                 .result(list)
                 .build();
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportExcel() { // Không cần tham số đầu vào nữa
+        try {
+            // 1. Lấy TẤT CẢ thiết bị (Dùng luôn Repository cho nhanh, hoặc qua Service)
+            // Lưu ý: Phải lấy List<ThietBi> (Entity) để khớp với ExcelService
+            List<ThietBi> listData = thietBiRepository.findAll();
+
+            // 2. Vẽ Excel
+            byte[] excelBytes = excelService.exportThietBiToExcel(listData);
+
+            // 3. Trả về
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=toan_bo_thiet_bi.xlsx")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(excelBytes);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

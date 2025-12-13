@@ -5,7 +5,9 @@ import com.thiet_thi.project_one.dtos.LoThietBiDto;
 import com.thiet_thi.project_one.iservices.ILoThietBiService;
 import com.thiet_thi.project_one.models.LoThietBi;
 import com.thiet_thi.project_one.dtos.ApiResponse; // 👇 Dùng class này để gói dữ liệu
+import com.thiet_thi.project_one.repositorys.LoThietBiRepository;
 import com.thiet_thi.project_one.responses.LoThietBiResponse;
+import com.thiet_thi.project_one.services.ExcelService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,8 @@ public class LoThietBiController {
 
 
     private final ILoThietBiService loThietBiService;
+    private final LoThietBiRepository loThietBiRepository;
+    private final ExcelService excelService;
 
     // 1. Nhập lô thủ công
     @PostMapping
@@ -73,4 +77,22 @@ public class LoThietBiController {
                  .result(loThietBiService.getStatistics())
                 .build();
     }
+    @GetMapping("/export")
+    public ApiResponse<byte[]> exportExcel() {
+        try {
+
+            List<LoThietBi> listData = loThietBiRepository.findAll();
+            byte[] excelBytes = excelService.exportLoThietBiToExcel(listData);
+
+            return ApiResponse.<byte[]>builder()
+                    .result(excelBytes)
+                    .build(); // Hoặc hàm ApiResponse.success(excelBytes) tùy code bạn
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Tùy cách bạn handle lỗi trong ApiResponse
+            throw new RuntimeException("Lỗi xuất file Excel");
+        }
+    }
+
 }

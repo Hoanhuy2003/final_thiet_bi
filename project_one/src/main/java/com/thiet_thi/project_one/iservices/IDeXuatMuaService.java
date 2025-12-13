@@ -22,7 +22,7 @@ public interface IDeXuatMuaService {
 
     DeXuatMuaResponse approve(String maDeXuat, String maNguoiDuyet) throws DataNotFoundException;
 
-    DeXuatMuaResponse reject(String maDeXuat, String maNguoiDuyet) throws DataNotFoundException;
+    DeXuatMuaResponse reject(String maDeXuat, String maNguoiDuyet, String lyDo) throws DataNotFoundException;
 
     Page<DeXuatMuaResponse> getAllPage(Pageable pageable);
 
