@@ -4,7 +4,10 @@ import com.thiet_thi.project_one.dtos.ApiResponse;
 import com.thiet_thi.project_one.dtos.DeXuatMuaDto;
 import com.thiet_thi.project_one.exceptions.DataNotFoundException;
 import com.thiet_thi.project_one.iservices.IDeXuatMuaService;
+import com.thiet_thi.project_one.models.DeXuatMua;
+import com.thiet_thi.project_one.repositorys.DeXuatMuaRepository;
 import com.thiet_thi.project_one.responses.DeXuatMuaResponse;
+import com.thiet_thi.project_one.services.ExcelService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,7 +24,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DeXuatMuaCotroller {
     private final IDeXuatMuaService deXuatMuaService;
-
+    private final ExcelService excelService;
+    private final DeXuatMuaRepository deXuatMuaRepository;
     // POST: Tạo đề xuất (ĐÚNG)
     @PostMapping
     public ResponseEntity<DeXuatMuaResponse> create(@Valid @RequestBody DeXuatMuaDto dto)
@@ -58,8 +62,9 @@ public class DeXuatMuaCotroller {
     @PatchMapping("/{ma}/tu_choi")
     public ResponseEntity<DeXuatMuaResponse> tuChoi(
             @PathVariable String ma,
-            @RequestParam String maNguoiDuyet) throws DataNotFoundException {
-        DeXuatMuaResponse response = deXuatMuaService.reject(ma, maNguoiDuyet);
+            @RequestParam String maNguoiDuyet,
+            @RequestParam String lyDo) throws DataNotFoundException {
+        DeXuatMuaResponse response = deXuatMuaService.reject(ma, maNguoiDuyet, lyDo);
         return ResponseEntity.ok(response);
     }
 
@@ -93,5 +98,23 @@ public class DeXuatMuaCotroller {
                 .result(deXuatPage)
                 .build();
     }
+    @GetMapping("/export")
+    public ApiResponse<byte[]> exportExcel() { // Khai báo trả về ApiResponse
+        try {
+            List<DeXuatMua> listEntities = deXuatMuaRepository.findAll();
 
+            List<DeXuatMuaResponse> listResponses = listEntities.stream()
+                    .map(DeXuatMuaResponse::from)
+                    .toList();
+            byte[] excelBytes = excelService.exportDeXuatMuaToExcel(listResponses);
+
+            return ApiResponse.<byte[]>builder()
+                    .result(excelBytes)
+                    .build();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi xuất Excel: " + e.getMessage());
+        }
+    }
 }

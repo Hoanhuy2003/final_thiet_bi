@@ -8,11 +8,16 @@ import com.thiet_thi.project_one.iservices.IThanhLyService;
 import com.thiet_thi.project_one.models.*;
 import com.thiet_thi.project_one.repositorys.*;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -25,17 +30,32 @@ public class PhieuThanhLyService implements IThanhLyService {
     private final ChiTietPhieuThanhLyRepository chiTietRepository;
     private final LichSuThietBiRepository lichSuThietBiRepository;
 
-    private void ghiLichSuThietBi(ThietBi tb, String tinhTrangTBCu, String tinhTrangTBMoi, NguoiDung nguoiThucHien) {
+    private void ghiLichSuThietBi(ThietBi tb,
+                                  String tinhTrangTBCu,
+                                  String tinhTrangTBMoi,
+                                  String hanhDong,   // THÊM: Hành động (Tạo TL, Duyệt TL, Từ chối TL)
+                                  String ghiChu,     // THÊM: Ghi chú chi tiết
+                                  NguoiDung nguoiThucHien) {
+
+        // Lấy thông tin hiện tại của thiết bị trước khi bị ảnh hưởng bởi thanh lý
+        String tenPhong = tb.getPhong() != null ? tb.getPhong().getTenPhong() : null;
+        String tenLoai = tb.getLoaiThietBi() != null ? tb.getLoaiThietBi().getTenLoai() : null;
+
         LichSuThietBi lichSu = LichSuThietBi.builder()
                 .maLichSu("LS" + System.currentTimeMillis())
                 .thietBi(tb)
                 .trangThaiCu(tinhTrangTBCu)
                 .trangThaiMoi(tinhTrangTBMoi)
-//                .phongCu(tb.getPhong() != null ? tb.getPhong().getTenPhong() : null)
-//                .phongMoi(tb.getPhong() != null ? tb.getPhong().getTenPhong() : null)
-//                .loaiCu(tb.getLoaiThietBi() != null ? tb.getLoaiThietBi().getTenLoai() : null)
-//                .loaiMoi(tb.getLoaiThietBi() != null ? tb.getLoaiThietBi().getTenLoai() : null)
-                .ngayThayDoi(LocalDate.now())
+
+                // Ghi lại Phòng & Loại (cũ và mới như nhau vì thanh lý không đổi vị trí)
+                .phongCu(tenPhong)
+                .phongMoi(tenPhong)
+                .loaiCu(tenLoai)
+                .loaiMoi(tenLoai)
+
+                .hanhDong(hanhDong)       // LƯU HÀNH ĐỘNG
+                .ghiChu(ghiChu)           // LƯU GHI CHÚ
+                .ngayThayDoi(LocalDate.now()) // Dùng LocalDateTime
                 .nguoiThayDoi(nguoiThucHien)
                 .build();
         lichSuThietBiRepository.save(lichSu);
@@ -49,11 +69,9 @@ public class PhieuThanhLyService implements IThanhLyService {
         System.out.println("DTO nhận được từ frontend: " + dto);
 
         // 1. Tìm người lập
-        System.out.println("Tìm người lập phiếu với mã: " + dto.getMaNguoiTao());
         NguoiDung nguoiLap = nguoiDungRepository.findById(dto.getMaNguoiTao())
                 .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người lập phiếu: " + dto.getMaNguoiTao()));
 
-        System.out.println("Tìm người duyệt phiếu với mã: " + dto.getMaNguoiDuyet());
         NguoiDung nguoiDuyet = dto.getMaNguoiDuyet() != null ?
                 nguoiDungRepository.findById(dto.getMaNguoiDuyet())
                         .orElseThrow(() -> new DataNotFoundException("Không tìm thấy người duyệt: " + dto.getMaNguoiDuyet()))
@@ -61,12 +79,9 @@ public class PhieuThanhLyService implements IThanhLyService {
 
         // 2. TỰ ĐỘNG SINH MÃ PHIẾU THANH LÝ
         String maPhieu = generateMaPhieuThanhLy();
-        System.out.println("Mã phiếu tự sinh: " + maPhieu);
         String soPhieu = generateSoPhieu();
-        System.out.println("Số phiếu tự sinh: " + soPhieu);
 
         // 3. Tạo phiếu
-        System.out.println("Tạo phiếu thanh lý với số phiếu: " + dto.getSoPhieu());
         PhieuThanhLy phieu = PhieuThanhLy.builder()
                 .maPhieuThanhLy(maPhieu)
                 .soPhieu(soPhieu)
@@ -80,24 +95,30 @@ public class PhieuThanhLyService implements IThanhLyService {
                 .tongGiaTriThuVe(BigDecimal.ZERO)
                 .build();
 
-        System.out.println("Phiếu đã tạo (chưa có chi tiết): " + phieu);
-
         // 4. Xử lý chi tiết thanh lý
-        System.out.println("Số lượng chi tiết thanh lý: " + dto.getChiTiet().size());
         BigDecimal tongThuVe = BigDecimal.ZERO;
 
-        // Trong method create() của PhieuThanhLyService
         for (ChiTietThanhLyDto ctDto : dto.getChiTiet()) {
             ThietBi tb = thietBiRepository.findById(ctDto.getMaTB())
                     .orElseThrow(() -> new DataNotFoundException("Không tìm thấy thiết bị: " + ctDto.getMaTB()));
 
             String tinhTrangTBCu = tb.getTinhTrang();
-            ghiLichSuThietBi(tb, tinhTrangTBCu, "Chờ thanh lý", nguoiLap);
+
+            // GHI LỊCH SỬ: TỪ TRẠNG THÁI CŨ -> CHỜ THANH LÝ
+            ghiLichSuThietBi(
+                    tb,
+                    tinhTrangTBCu,
+                    "Chờ thanh lý",
+                    "Tạo phiếu Thanh lý",
+                    "Đề xuất thanh lý bởi phiếu " + maPhieu,
+                    nguoiLap
+            );
+
             // TỰ SINH maCTTL – BẮT BUỘC!
             String maCTTL = generateMaChiTiet(phieu.getMaPhieuThanhLy(), phieu.getChiTiet().size() + 1);
 
             ChiTietPhieuThanhLy chiTiet = ChiTietPhieuThanhLy.builder()
-                    .maCTTL(maCTTL) // ← THÊM DÒNG NÀY!
+                    .maCTTL(maCTTL)
                     .phieuThanhLy(phieu)
                     .thietBi(tb)
                     .nguyenGia(tb.getGiaTriBanDau())
@@ -108,7 +129,7 @@ public class PhieuThanhLyService implements IThanhLyService {
                     .giaTriThuVe(ctDto.getGiaTriThuVe() != null ? ctDto.getGiaTriThuVe() : BigDecimal.ZERO)
                     .ngayThanhLy(ctDto.getNgayThanhLy())
                     .ghiChu(ctDto.getGhiChu())
-                    .trangThai("Chờ duyệt")  // THÊM DÒNG NÀY – BẮT BUỘC!
+                    .trangThai("Chờ duyệt")
                     .tinhTrangTBCu(tinhTrangTBCu)
                     .build();
 
@@ -116,21 +137,15 @@ public class PhieuThanhLyService implements IThanhLyService {
             tongThuVe = tongThuVe.add(chiTiet.getGiaTriThuVe());
 
             // Cập nhật trạng thái thiết bị
-            System.out.println("Cập nhật trạng thái thiết bị " + tb.getMaTB() + " → Đã thanh lý");
             tb.setTinhTrang("Chờ thanh lý");
             thietBiRepository.save(tb);
         }
 
         phieu.setTongGiaTriThuVe(tongThuVe);
-        System.out.println("Tổng giá trị thu về: " + tongThuVe);
 
         PhieuThanhLy saved = phieuThanhLyRepository.save(phieu);
-        System.out.println("TẠO PHIẾU THANH LÝ THÀNH CÔNG: " + saved.getMaPhieuThanhLy());
-        System.out.println("=== KẾT THÚC TẠO PHIẾU THANH LÝ ===\n");
-
         return saved;
     }
-
     private String generateMaPhieuThanhLy() {
         int year = LocalDate.now().getYear();
         long count = phieuThanhLyRepository.count();
@@ -261,7 +276,6 @@ public class PhieuThanhLyService implements IThanhLyService {
     public PhieuThanhLy duyetPhieu(String maPhieu, String maNguoiDuyet) throws DataNotFoundException {
         PhieuThanhLy phieu = getByID(maPhieu);
 
-        // Kiểm tra trạng thái
         if (!"Chờ duyệt".equals(phieu.getTrangThai())) {
             throw new IllegalStateException("Chỉ được duyệt phiếu đang ở trạng thái 'Chờ duyệt'!");
         }
@@ -278,17 +292,25 @@ public class PhieuThanhLyService implements IThanhLyService {
         // Cập nhật trạng thái tất cả thiết bị trong phiếu thành "Đã thanh lý"
         for (ChiTietPhieuThanhLy ct : phieu.getChiTiet()) {
             ThietBi tb = ct.getThietBi();
-            String tinhTrangTBCu = tb.getTinhTrang();
+            String tinhTrangTBCu = tb.getTinhTrang(); // Là "Chờ thanh lý"
 
             tb.setTinhTrang("Đã thanh lý");
             thietBiRepository.save(tb);
-            ct.setTrangThai("Đã duyệt");           // TRẠNG THÁI CHI TIẾT = DUYỆT
-            ct.setNguoiDuyet(nguoiDuyet);       // NGƯỜI DUYỆT
-            ct.setNgayThanhLy(LocalDate.now()); // NGÀY THANH LÝ
+            ct.setTrangThai("Đã duyệt");
+            ct.setNguoiDuyet(nguoiDuyet);
+            ct.setNgayThanhLy(LocalDate.now());
             chiTietRepository.save(ct);
-            ghiLichSuThietBi(tb, tinhTrangTBCu, "Đã thanh lý", nguoiDuyet);
-        }
 
+            // GHI LỊCH SỬ: TỪ CHỜ THANH LÝ -> ĐÃ THANH LÝ
+            ghiLichSuThietBi(
+                    tb,
+                    tinhTrangTBCu,
+                    "Đã thanh lý",
+                    "Duyệt Thanh lý",
+                    "Hoàn tất thanh lý theo phiếu " + maPhieu,
+                    nguoiDuyet
+            );
+        }
 
         return phieuThanhLyRepository.save(phieu);
     }
@@ -298,7 +320,6 @@ public class PhieuThanhLyService implements IThanhLyService {
     public PhieuThanhLy tuChoiPhieu(String maPhieu, String maNguoiDuyet, String lyDoTuChoi) throws DataNotFoundException {
         PhieuThanhLy phieu = getByID(maPhieu);
 
-        // Kiểm tra trạng thái
         if (!"Chờ duyệt".equals(phieu.getTrangThai())) {
             throw new IllegalStateException("Chỉ được từ chối phiếu đang ở trạng thái 'Chờ duyệt'!");
         }
@@ -309,26 +330,37 @@ public class PhieuThanhLyService implements IThanhLyService {
         // Cập nhật trạng thái phiếu
         phieu.setTrangThai("Từ chối");
         phieu.setNguoiDuyet(nguoiDuyet);
-        phieu.setNgayDuyet(java.time.LocalDate.now());
+        phieu.setNgayDuyet(LocalDate.now());
         phieu.setGhiChu((phieu.getGhiChu() != null ? phieu.getGhiChu() + "\n" : "")
                 + "Từ chối bởi " + nguoiDuyet.getTenND() + ": " + lyDoTuChoi);
 
-        // KHÔI PHỤC trạng thái thiết bị về "Đang sử dụng" (hoặc trạng thái cũ nếu bạn lưu)
+        // KHÔI PHỤC trạng thái thiết bị về trạng thái cũ
         for (ChiTietPhieuThanhLy ct : phieu.getChiTiet()) {
             ThietBi tb = ct.getThietBi();
-            String tinhTrangTBCu = tb.getTinhTrang();
-            String tinhTrangTBMoi = ct.getTinhTrangTBCu();
+            String tinhTrangTBCu = tb.getTinhTrang(); // Là "Chờ thanh lý"
+            String tinhTrangTBMoi = ct.getTinhTrangTBCu(); // Trạng thái trước khi tạo phiếu
 
-            // Nếu bạn có lưu trạng thái cũ → dùng nó, còn không thì mặc định "Đang sử dụng"
+            // Khôi phục trạng thái
             tb.setTinhTrang(tinhTrangTBMoi);
             thietBiRepository.save(tb);
-            ct.setTrangThai("Từ chối");         // TRẠNG THÁI CHI TIẾT = TỪ CHỐI
-            ct.setNguoiDuyet(nguoiDuyet);            // NGƯỜI DUYỆT
-            ct.setNgayThanhLy(LocalDate.now()); // GHI NHẬN NGÀY TỪ CHỐI
+            ct.setTrangThai("Từ chối");
+            ct.setNguoiDuyet(nguoiDuyet);
+            ct.setNgayThanhLy(LocalDate.now());
             chiTietRepository.save(ct);
-            ghiLichSuThietBi(tb, tinhTrangTBCu, tinhTrangTBMoi, nguoiDuyet);
+
+            // GHI LỊCH SỬ: TỪ CHỜ DUYỆT VỀ TRẠNG THÁI CŨ
+            ghiLichSuThietBi(
+                    tb,
+                    tinhTrangTBCu,
+                    tinhTrangTBMoi,
+                    "Từ chối Thanh lý",
+                    "Từ chối phiếu thanh lý. Khôi phục trạng thái thiết bị.",
+                    nguoiDuyet
+            );
         }
 
         return phieuThanhLyRepository.save(phieu);
     }
+
+
 }

@@ -51,4 +51,7 @@ public class DeXuatMua {
     @OneToMany(mappedBy = "deXuatMua", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<ChiTietDeXuatMua> chiTietDeXuat = new HashSet<>();
+
+    @Column(name = "ly_do", columnDefinition = "TEXT") // Dùng TEXT để viết được dài
+    private String lyDo;
 }

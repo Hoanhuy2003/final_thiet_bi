@@ -119,10 +119,10 @@ public class DeXuatMuaService implements IDeXuatMuaService {
     }
 
     // Hàm từ chối
-    @PreAuthorize("hasRole('ADMIN') or hasRole('HIEUTRUONG')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Override
     @Transactional
-    public DeXuatMuaResponse reject(String maDeXuat, String maNguoiDuyet) throws DataNotFoundException {
+    public DeXuatMuaResponse reject(String maDeXuat, String maNguoiDuyet, String lyDo) throws DataNotFoundException {
 
         // 1. Tìm đề xuất (Entity)
         DeXuatMua deXuat = deXuatMuaRepository.findById(maDeXuat)
@@ -135,6 +135,7 @@ public class DeXuatMuaService implements IDeXuatMuaService {
         // 3. Cập nhật trạng thái và lưu dấu vết
         deXuat.setTrangThai("Từ chối");
         deXuat.setNguoiDuyet(approver);
+        deXuat.setLyDo(lyDo);
         deXuat.setNgayDuyet(LocalDate.now()); // Lưu ngày từ chối
 
         DeXuatMua saved = deXuatMuaRepository.save(deXuat);

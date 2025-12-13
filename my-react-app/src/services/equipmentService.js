@@ -29,4 +29,16 @@ export const equipmentService = {
   delete: async (maTB) => {
     await axiosInstance.delete(`${API}/${maTB}`);
   },
+
+exportExcel: async () => { 
+    try {
+      // Đổi API_URL thành API cho khớp với khai báo ở trên
+      const response = await axiosInstance.get(`${API}/export`, { 
+        responseType: 'blob' 
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

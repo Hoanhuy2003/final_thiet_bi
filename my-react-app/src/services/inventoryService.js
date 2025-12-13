@@ -60,4 +60,22 @@ export const inventoryService = {
             throw error; 
         }
     },
+    exportExcel: async () => {
+    try {    
+      const response = await axiosInstance.get(`/api/kiem-ke/export`);
+      return response.data ? response.data : response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  exportReportExcel: async (maKiemKe) => {
+    try {
+      // API: GET /api/kiem_ke/{ma}/export-bien-ban
+      const response = await axiosInstance.get(`/api/kiem-ke/${maKiemKe}/export-bien-ban`);
+      
+      return response.data ? response.data : response;
+    } catch (error) {
+      throw error;
+    }
+  }
 };
