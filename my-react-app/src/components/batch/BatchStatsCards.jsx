@@ -57,8 +57,8 @@ export default function BatchStatsCards() {
           <div className="card-body">
             <div className="d-flex align-items-center justify-content-between mb-3">
               <h6 className="text-muted mb-0 fw-bold">Tổng lô nhập</h6>
-              <div className="p-2 bg-primary bg-opacity-10 rounded-circle">
-                 <Package size={20} className="text-primary" />
+              <div className="p-2 bg-success bg-opacity-10 rounded">
+                <Package size={28} />
               </div>
             </div>
             <h2 className="mb-2 fw-bold">{stats.totalBatches}</h2>

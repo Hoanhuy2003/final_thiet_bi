@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ClipboardCheck, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { ClipboardCheck, CheckCircle, XCircle, AlertTriangle, ClipboardList } from "lucide-react";
 import { inventoryService } from "../../services/inventoryService";
 
 export default function InventoryStatsCards() {
@@ -66,8 +66,8 @@ export default function InventoryStatsCards() {
           <div className="card-body">
             <div className="d-flex align-items-center justify-content-between mb-3">
               <h6 className="text-muted mb-0">Tổng phiên kiểm kê</h6>
-              <div className="p-2 bg-primary bg-opacity-10 rounded">
-                <ClipboardCheck size={20} className="text-primary" />
+              <div className="p-2 bg-success bg-opacity-10 rounded">
+                <ClipboardList size={28} />
               </div>
             </div>
             <h2 className="mb-2">{stats.totalSessions}</h2>

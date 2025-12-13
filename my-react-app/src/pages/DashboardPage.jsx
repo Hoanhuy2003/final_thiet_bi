@@ -18,12 +18,12 @@ export default function DashboardPage() {
           <EquipmentStatusPieChart />
         </div>
       </div>
-
+{/* 
       <div className="row g-4">
         <div className="col-12">
           <RecentActivities />
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -96,7 +96,7 @@ export default function ProfileSidebar() {
       </div>
 
       {/* Account Info */}
-      <div className="card shadow-sm border-0">
+      {/* <div className="card shadow-sm border-0">
         <div className="card-header bg-white py-3">
           <h6 className="mb-0 fw-bold">Thông tin tài khoản</h6>
         </div>
@@ -114,7 +114,7 @@ export default function ProfileSidebar() {
             <p className="mb-0 text-dark">Vừa xong</p>
           </div>
         </div>
-      </div>
+      </div> */}
     </>
   );
 }
