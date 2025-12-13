@@ -35,7 +35,7 @@ export default function ProcurementStatsCards() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await deXuatMuaService.getAll();
+        const res = await deXuatMuaService.getAllForStats();
         const data = res.data?.result || res.data || res || [];
         if (Array.isArray(data)) {
           calculateStats(data);

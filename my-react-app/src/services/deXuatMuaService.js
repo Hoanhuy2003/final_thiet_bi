@@ -96,5 +96,13 @@ exportExcel: async () => {
       throw error;
     }
   },
-
+  getAllForStats: async () => {
+    try {
+      // Backend đã tạo endpoint GET /api/de_xuat_mua/all để trả về List<T> không phân trang
+      const response = await axiosInstance.get(`${API_URL}/list`);
+      return response.data; 
+    } catch (error) {
+      throw error;
+    }
+  },
 };
